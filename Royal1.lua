@@ -2092,6 +2092,93 @@ return function(Config)
 		Window.ContainerHolder
 	})
 
+	--// ============================================================
+	--// NEON GRADIENT WINDOW GLOW
+	--// ============================================================
+
+	local NeonGradientColors = ColorSequence.new({
+		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(112, 24, 255)),
+		ColorSequenceKeypoint.new(0.18, Color3.fromRGB(196, 42, 255)),
+		ColorSequenceKeypoint.new(0.38, Color3.fromRGB(255, 55, 230)),
+		ColorSequenceKeypoint.new(0.58, Color3.fromRGB(150, 38, 255)),
+		ColorSequenceKeypoint.new(0.78, Color3.fromRGB(82, 72, 255)),
+		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(112, 24, 255)),
+	})
+
+	local NeonGradients = {}
+
+	local function AddNeonGradient(Parent, Rotation)
+		local Gradient = New("UIGradient", {
+			Color = NeonGradientColors,
+			Rotation = Rotation or 0,
+			Parent = Parent,
+		})
+
+		table.insert(NeonGradients, Gradient)
+		return Gradient
+	end
+
+	local function CreateBloom(Name, Expand, Transparency)
+		local Bloom = New("ImageLabel", {
+			Name = Name,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.new(1, Expand, 1, Expand),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+
+			-- Same soft shadow family already used by the library.
+			Image = "rbxassetid://8992230677",
+			ScaleType = Enum.ScaleType.Slice,
+			SliceCenter = Rect.new(
+				Vector2.new(99, 99),
+				Vector2.new(99, 99)
+			),
+
+			ImageColor3 = Color3.new(1, 1, 1),
+			ImageTransparency = Transparency,
+		})
+
+		AddNeonGradient(Bloom)
+		return Bloom
+	end
+
+	-- Soft bloom sits behind the actual acrylic window.
+	Window.NeonGlow = New("Frame", {
+		Name = "NeonGlow",
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Size = UDim2.fromScale(1, 1),
+	}, {
+		CreateBloom("OuterBloom", 86, 0.58),
+		CreateBloom("MiddleBloom", 56, 0.40),
+		CreateBloom("InnerBloom", 32, 0.24),
+
+		-- Wide colored halo close to the edge.
+		New("Frame", {
+			Name = "NearGlow",
+			BackgroundTransparency = 1,
+			Size = UDim2.fromScale(1, 1),
+		}, {
+			New("UICorner", {
+				CornerRadius = UDim.new(0, 8),
+			}),
+
+			(function()
+				local Stroke = New("UIStroke", {
+					ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+					LineJoinMode = Enum.LineJoinMode.Round,
+					Thickness = 9,
+					Transparency = 0.68,
+					Color = Color3.new(1, 1, 1),
+				})
+
+				AddNeonGradient(Stroke)
+				return Stroke
+			end)(),
+		}),
+	})
+
 	Window.Root = New("Frame", {
 		Active = true,
 		BackgroundTransparency = 1,
@@ -2099,117 +2186,57 @@ return function(Config)
 		Position = Window.Position,
 		Parent = Config.Parent,
 	}, {
+		-- Keep glow first so the acrylic window renders over the bloom.
+		Window.NeonGlow,
 		Window.AcrylicPaint.Frame,
 		Window.TabDisplay,
 		Window.ContainerCanvas,
 		TabFrame,
 		ResizeStartFrame,
 	})
-                                  
---// Animated Gradient Glow Outline
-local GradientTweenService = game:GetService("TweenService")
 
-local GlowColors = ColorSequence.new({
-	ColorSequenceKeypoint.new(0.00, Color3.fromRGB(108, 30, 210)), -- Purple
-	ColorSequenceKeypoint.new(0.25, Color3.fromRGB(75, 95, 255)),  -- Blue
-	ColorSequenceKeypoint.new(0.50, Color3.fromRGB(65, 220, 255)), -- Cyan
-	ColorSequenceKeypoint.new(0.75, Color3.fromRGB(255, 70, 210)), -- Pink
-	ColorSequenceKeypoint.new(1.00, Color3.fromRGB(108, 30, 210)), -- Purple
-})
-
-local function CreateGlowLayer(Name, Thickness, Transparency, Expand)
-	local GlowFrame = New("Frame", {
-		Name = Name,
-
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-
-		Size = UDim2.new(
-			1,
-			Expand * 2,
-			1,
-			Expand * 2
-		),
-
-		Position = UDim2.fromOffset(
-			-Expand,
-			-Expand
-		),
-
-		Parent = Window.Root,
-
-		ZIndex = 50,
-	}, {
-		New("UICorner", {
-			CornerRadius = UDim.new(0, 8 + Expand),
-		}),
-	})
-
-	local Stroke = New("UIStroke", {
-		Name = "GlowStroke",
-
+	-- Bright neon edge rendered directly on the acrylic frame.
+	Window.NeonHaloStroke = New("UIStroke", {
+		Name = "NeonHaloStroke",
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-
-		Thickness = Thickness,
-		Transparency = Transparency,
-
-		Parent = GlowFrame,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Thickness = 6,
+		Transparency = 0.56,
+		Color = Color3.new(1, 1, 1),
+		Parent = Window.AcrylicPaint.Frame,
 	})
 
-	local Gradient = New("UIGradient", {
-		Name = "GlowGradient",
+	AddNeonGradient(Window.NeonHaloStroke)
 
-		Color = GlowColors,
-		Rotation = 0,
-
-		Parent = Stroke,
+	Window.NeonCoreStroke = New("UIStroke", {
+		Name = "NeonCoreStroke",
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Thickness = 2.5,
+		Transparency = 0,
+		Color = Color3.new(1, 1, 1),
+		Parent = Window.AcrylicPaint.Frame,
 	})
 
-	local RotationTween = GradientTweenService:Create(
-		Gradient,
+	AddNeonGradient(Window.NeonCoreStroke)
 
-		TweenInfo.new(
-			4,
-			Enum.EasingStyle.Linear,
-			Enum.EasingDirection.InOut,
-			-1
-		),
+	-- Slow animated movement around the border.
+	local NeonRotation = 0
 
-		{
-			Rotation = 360
-		}
-	)
+	Creator.AddSignal(game:GetService("RunService").RenderStepped, function(DeltaTime)
+		if not Window.Root or not Window.Root.Parent then
+			return
+		end
 
-	RotationTween:Play()
+		NeonRotation = (NeonRotation + DeltaTime * 22) % 360
 
-	return GlowFrame
-end
+		for _, Gradient in next, NeonGradients do
+			if Gradient and Gradient.Parent then
+				Gradient.Rotation = NeonRotation
+			end
+		end
+	end)
 
-
---// Soft outer glow
-Window.GlowOuter = CreateGlowLayer(
-	"GlowOuter",
-	10,
-	0.90,
-	3
-)
-
---// Middle glow
-Window.GlowMiddle = CreateGlowLayer(
-	"GlowMiddle",
-	6,
-	0.78,
-	1
-)
-
---// Sharp neon border
-Window.GlowBorder = CreateGlowLayer(
-	"GlowBorder",
-	2,
-	0.05,
-	0
-)
-                                  
 local AccountInfo = Instance.new("Frame")
 local AvatarFrame = Instance.new("Frame")
 local AvatarImage = Instance.new("ImageLabel")
