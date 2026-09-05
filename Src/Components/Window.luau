@@ -74,7 +74,7 @@ return function(Config)
 			TabFrameSize = UDim2.new(1, -OuterPadding * 2, 0, RowHeight)
 			TabFramePos = IsReversed and UDim2.new(0, OuterPadding, 1, -RowHeight - 8) or UDim2.new(0, OuterPadding, 0, TitleBarHeight + 12)
 		else
-			TabFrameSize = UDim2.new(0, Window.TabWidth, 1, -66)
+			TabFrameSize = UDim2.new(0, Window.TabWidth, 1, -145)
 			TabFramePos = ForAlignment == "Right" and UDim2.new(1, -OuterPadding - EdgeInset - Window.TabWidth, 0, 54) or UDim2.new(0, OuterPadding, 0, 54)
 		end
 
