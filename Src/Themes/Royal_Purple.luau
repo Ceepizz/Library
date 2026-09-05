@@ -12,7 +12,7 @@ return {
 	Element = Color3.fromRGB(100, 70, 150),
 	ElementBorder = Color3.fromRGB(11, 8, 18),
 	InElementBorder = Color3.fromRGB(107, 79, 155),
-	ElementTransparency = 0.87,
+	ElementTransparency = 0.30,
 
 	ToggleSlider = Color3.fromRGB(100, 70, 150),
 	ToggleToggled = Color3.fromRGB(0, 0, 0),
