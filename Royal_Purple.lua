@@ -1690,6 +1690,38 @@ return function(Config)
 		return Button
 	end
 
+	local function ResolveWindowIcon(i)
+		if type(i) == "number" then
+			return {
+				Image = "rbxassetid://" .. tostring(i),
+				ImageRectSize = Vector2.new(0, 0),
+				ImageRectOffset = Vector2.new(0, 0),
+			}
+		elseif type(i) == "string" then
+			if i:find("^rbxassetid://") then
+				return {
+					Image = i,
+					ImageRectSize = Vector2.new(0, 0),
+					ImageRectOffset = Vector2.new(0, 0),
+				}
+			elseif tonumber(i) then
+				return {
+					Image = "rbxassetid://" .. i,
+					ImageRectSize = Vector2.new(0, 0),
+					ImageRectOffset = Vector2.new(0, 0),
+				}
+			end
+		end
+
+		return {
+			Image = "rbxassetid://88505209802501",
+			ImageRectSize = Vector2.new(0, 0),
+			ImageRectOffset = Vector2.new(0, 0),
+		}
+	end
+
+	local WindowIcon = ResolveWindowIcon(Config.Icon)
+
 	TitleBar.Frame = New("Frame", {
 		Active = true,
 		Size = UDim2.new(1, 0, 0, 42),
@@ -1706,38 +1738,41 @@ return function(Config)
 		})
 	})
 
-	local TitleIconAsset = "rbxassetid://88505209802501"
-
-	TitleBar.Icon = New("ImageLabel", {
-		Name = "WindowLogo",
-		Image = TitleIconAsset,
-		Size = UDim2.fromOffset(24, 24),
-		Position = UDim2.new(0, 12, 0.5, 0),
-		AnchorPoint = Vector2.new(0, 0.5),
-		BackgroundTransparency = 1,
-		ScaleType = Enum.ScaleType.Fit,
-		ZIndex = 20,
-		Parent = TitleBar.Frame,
-	})
-
 	TitleBar.TitleHolder = New("Frame", {
-		Size = UDim2.new(1, -44, 1, 0),
+		Size = UDim2.new(1, -126, 1, 0),
 		Parent = TitleBar.Frame,
-		Position = UDim2.new(0, 44, 0, 0),
+		Position = UDim2.new(0, 10, 0, 0),
 		BackgroundTransparency = 1,
-		ZIndex = 20,
 	}, {
 		New("UIListLayout", {
-			Padding = UDim.new(0, 5),
+			Padding = UDim.new(0, 8),
 			FillDirection = Enum.FillDirection.Horizontal,
 			SortOrder = Enum.SortOrder.LayoutOrder,
+			VerticalAlignment = Enum.VerticalAlignment.Center,
 		})
+	})
+
+	TitleBar.Icon = New("ImageLabel", {
+		Name = "Icon",
+		Parent = TitleBar.TitleHolder,
+		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		LayoutOrder = 0,
+		Size = UDim2.fromOffset(30, 30),
+		Image = WindowIcon.Image,
+		ImageRectSize = WindowIcon.ImageRectSize,
+		ImageRectOffset = WindowIcon.ImageRectOffset,
+		ImageColor3 = Color3.fromRGB(255, 255, 255),
+		ImageTransparency = 0,
+		ScaleType = Enum.ScaleType.Fit,
 	})
 
 	TitleBar.Title = New("TextLabel", {
 		RichText = true,
 		Text = Config.Title,
 		Parent = TitleBar.TitleHolder,
+		LayoutOrder = 1,
 		FontFace = Font.new(
 			"rbxasset://fonts/families/GothamSSm.json",
 			Enum.FontWeight.Regular,
@@ -1758,6 +1793,7 @@ return function(Config)
 		RichText = true,
 		Text = Config.SubTitle,
 		Parent = TitleBar.TitleHolder,
+		LayoutOrder = 2,
 		TextTransparency = 0.4,
 		FontFace = Font.new(
 			"rbxasset://fonts/families/GothamSSm.json",
@@ -2070,64 +2106,6 @@ return function(Config)
 		ResizeStartFrame,
 	})
 
-	local function ResolveWindowLogoAsset(Value)
-		if typeof(Value) == "number" then
-			return "rbxassetid://" .. tostring(Value)
-		elseif typeof(Value) == "string" then
-			if Value:find("^rbxassetid://") then
-				return Value
-			elseif tonumber(Value) then
-				return "rbxassetid://" .. Value
-			end
-		end
-
-		return "rbxassetid://88505209802501"
-	end
-
-	local WindowLogoAsset = "rbxassetid://88505209802501"
-
-	local CloseUIImage = New("ImageLabel", {
-		Name = "CloseUIImage",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		BackgroundTransparency = 1,
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(50, 50),
-		Image = WindowLogoAsset,
-		ImageTransparency = 0,
-	})
-
-	local BackgroundCloseUI = New("Frame", {
-		Name = "BackgroundCloseUI",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		BackgroundColor3 = Color3.fromRGB(24, 24, 31),
-		BorderSizePixel = 0,
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(1, -10, 1, -10),
-	}, {
-		New("UICorner", {
-			CornerRadius = UDim.new(0, 6),
-		}),
-		CloseUIImage,
-	})
-
-	Window.CloseUIShadow = New("ImageButton", {
-		Name = "CloseUIShadow",
-		Visible = false,
-		Active = true,
-		AutoButtonColor = false,
-		BackgroundTransparency = 1,
-		Position = UDim2.new(0, 12, 0.2, 0),
-		Size = UDim2.fromOffset(70, 70),
-		Parent = Config.Parent,
-		Image = "rbxassetid://1316045217",
-		ImageColor3 = Color3.fromRGB(24, 24, 31),
-		ImageTransparency = 0.5,
-		ScaleType = Enum.ScaleType.Slice,
-		SliceCenter = Rect.new(10, 10, 118, 118),
-	}, {
-		BackgroundCloseUI,
-	})
-
 local AccountInfo = Instance.new("Frame")
 local AvatarFrame = Instance.new("Frame")
 local AvatarImage = Instance.new("ImageLabel")
@@ -2280,7 +2258,7 @@ task.spawn(function()
 end)
 
 	Window.HideButton = New("ImageButton", {
-		Visible = false,
+		Visible = Library.Utilities:GetOS() == "Mobile",
 		Size = Config.Mobile.Size,
 		BackgroundTransparency = 1,
 		Position = UDim2.new(1, -Config.Mobile.Size.X.Offset - 25, 0.5, -Config.Mobile.Size.Y.Offset / 2),
@@ -2492,10 +2470,6 @@ end)
 		Window.Minimized = not Window.Minimized
 		Window.Root.Visible = not Window.Minimized
 
-		if Window.CloseUIShadow then
-			Window.CloseUIShadow.Visible = Window.Minimized
-		end
-
 		Window.OnMinimized:Fire(tick(), Window.Root.Visible)
 
 		if not MinimizeNotif then
@@ -2513,87 +2487,10 @@ end)
 			local Icon = Config.Mobile.GetIcon(Window.Minimized)
 			Window.HideButton.Image = Icon.Image
 			Window.HideButton.ImageRectOffset = Icon.ImageRectOffset
-			Window.HideButton.ImageRectSize = Icon.ImageRectSize
+			Window.HideButton.ImageRectSize = Icon.ImageRectSiz
 		end
 		Window.PostMinimized:Fire(tick(), Window.Root.Visible)
 	end
-
-	local CloseLogoDragging = false
-	local CloseLogoDragInput = nil
-	local CloseLogoDragStart = nil
-	local CloseLogoStartPos = nil
-	local CloseLogoMoved = false
-
-	Creator.AddSignal(Window.CloseUIShadow.InputBegan, function(Input)
-		if Input.UserInputType == Enum.UserInputType.MouseButton1
-			or Input.UserInputType == Enum.UserInputType.Touch then
-			CloseLogoDragging = true
-			CloseLogoMoved = false
-			CloseLogoDragStart = Input.Position
-			CloseLogoStartPos = Window.CloseUIShadow.Position
-
-			Input.Changed:Connect(function()
-				if Input.UserInputState == Enum.UserInputState.End then
-					CloseLogoDragging = false
-				end
-			end)
-		end
-	end)
-
-	Creator.AddSignal(Window.CloseUIShadow.InputChanged, function(Input)
-		if Input.UserInputType == Enum.UserInputType.MouseMovement
-			or Input.UserInputType == Enum.UserInputType.Touch then
-			CloseLogoDragInput = Input
-		end
-	end)
-
-	Creator.AddSignal(UserInputService.InputChanged, function(Input)
-		if Input == CloseLogoDragInput and CloseLogoDragging then
-			local Delta = Input.Position - CloseLogoDragStart
-
-			if Delta.Magnitude > 5 then
-				CloseLogoMoved = true
-			end
-
-			Window.CloseUIShadow.Position = UDim2.new(
-				CloseLogoStartPos.X.Scale,
-				CloseLogoStartPos.X.Offset + Delta.X,
-				CloseLogoStartPos.Y.Scale,
-				CloseLogoStartPos.Y.Offset + Delta.Y
-			)
-		end
-	end)
-
-	Creator.AddSignal(Window.CloseUIShadow.MouseButton1Click, function()
-		if CloseLogoMoved then
-			CloseLogoMoved = false
-			return
-		end
-
-		CloseUIImage:TweenSize(
-			UDim2.fromOffset(45, 45),
-			Enum.EasingDirection.Out,
-			Enum.EasingStyle.Back,
-			0.08,
-			true
-		)
-
-		task.delay(0.06, function()
-			if CloseUIImage and CloseUIImage.Parent then
-				CloseUIImage:TweenSize(
-					UDim2.fromOffset(50, 50),
-					Enum.EasingDirection.Out,
-					Enum.EasingStyle.Back,
-					0.12,
-					true
-				)
-			end
-		end)
-
-		if Window.Minimized then
-			Window:Minimize()
-		end
-	end)
 
 	Creator.AddSignal(UserInputService.InputBegan, function(Input)
 		if
