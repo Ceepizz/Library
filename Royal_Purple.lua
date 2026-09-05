@@ -1706,10 +1706,35 @@ return function(Config)
 		})
 	})
 
+	local TitleIconAsset = nil
+
+	if typeof(Config.Icon) == "number" then
+		TitleIconAsset = "rbxassetid://" .. tostring(Config.Icon)
+	elseif typeof(Config.Icon) == "string" then
+		if Config.Icon:find("^rbxassetid://") then
+			TitleIconAsset = Config.Icon
+		elseif tonumber(Config.Icon) then
+			TitleIconAsset = "rbxassetid://" .. Config.Icon
+		end
+	end
+
+	if TitleIconAsset then
+		TitleBar.Icon = New("ImageLabel", {
+			Name = "WindowLogo",
+			Image = TitleIconAsset,
+			Size = UDim2.fromOffset(30, 30),
+			Position = UDim2.new(0, 12, 0.5, 0),
+			AnchorPoint = Vector2.new(0, 0.5),
+			BackgroundTransparency = 1,
+			ScaleType = Enum.ScaleType.Fit,
+			Parent = TitleBar.Frame,
+		})
+	end
+
 	TitleBar.TitleHolder = New("Frame", {
-		Size = UDim2.new(1, -16, 1, 0),
+		Size = UDim2.new(1, TitleIconAsset and -54 or -16, 1, 0),
 		Parent = TitleBar.Frame,
-		Position = UDim2.new(0, 16, 0, 0),
+		Position = UDim2.new(0, TitleIconAsset and 50 or 16, 0, 0),
 		BackgroundTransparency = 1,
 	}, {
 		New("UIListLayout", {
@@ -2278,6 +2303,7 @@ end)
 	Window.TitleBar = require(script.Parent.TitleBar)({
 		Title = Config.Title,
 		SubTitle = Config.SubTitle,
+		Icon = Config.Icon,
 		Parent = Window.Root,
 		Window = Window,
 	})
