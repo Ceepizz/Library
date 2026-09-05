@@ -1,14 +1,5 @@
--- Royal_Purple_CLEAN.lua
--- Slimmed directly from the supplied Ceepizz / Fluent Renewed WAX source.
--- No AutoProgressLib code or branding is merged into this library.
--- Royal_Purple is the only theme bundled.
-
--- ++++++++ WAX BUNDLED DATA BELOW ++++++++ --
-
--- Will be used later for getting flattened globals
 local ImportGlobals
 
--- Holds direct closure data (defining this before the DOM tree for line debugging etc)
 local ClosureBindings = {
     function()local wax,script,require=ImportGlobals(1)local ImportGlobals return (function(...)local function Clone<Original>(ToClone: any & Original): (Original, boolean)
 	local Type = typeof(ToClone)
@@ -25,7 +16,7 @@ local ClosureBindings = {
 			if orig_type == 'table' then
 				if Copies[orig] then
 					copy = Copies[orig]
-				else	
+				else
 					copy = {}
 
 					Copies[orig] = copy
@@ -134,9 +125,9 @@ function Library:SafeCallback(Function, ...)
 
 		if not Success then
 			local _, i = Event:find(":%d+: ")
-	
+
 			task.defer(error, debug.traceback(Event, 2))
-	
+
 			Library:Notify({
 				Title = "Interface",
 				Content = "Callback error",
@@ -189,7 +180,7 @@ end
 
 function Library.Utilities:GetOS()
 	local OSName = "Unknown"
-	
+
 	if GuiService:IsTenFootInterface() then
 		local L2Button_Name = UserInputService:GetStringForKeyCode(Enum.KeyCode.ButtonL2)
 
@@ -300,7 +291,6 @@ function Elements:Button(Config)
 	return NativeButton(self, Legacy)
 end
 
-
 Library.Elements = Elements
 
 function Library:Window(Config: {
@@ -337,12 +327,11 @@ function Library:Window(Config: {
 		end
 	end
 
-	-- Single-theme build: Royal_Purple is the only available theme.
 	Config.Theme = "Royal_Purple"
 
 	if not Config.Title then
 		local Success, Game_Info = pcall(MarketplaceService.GetProductInfo, MarketplaceService, game.PlaceId)
-		
+
 		Config.Title = Success and Game_Info.Name or "Fluent Renewed"
 	end
 
@@ -450,7 +439,7 @@ function Library:Destroy()
 			end
 
 			if IsA(v, "ScrollingFrame") then
-				tweenProps.ScrollBarImageTransparency = 1		
+				tweenProps.ScrollBarImageTransparency = 1
 			end
 
 			if IsA(v, "TextLabel") or IsA(v, "TextBox") then
@@ -506,7 +495,7 @@ end
 
 return Library
 end)() end,
-    [3] = function()local wax,script,require=ImportGlobals(3)local ImportGlobals return (function(...)return { 
+    [3] = function()local wax,script,require=ImportGlobals(3)local ImportGlobals return (function(...)return {
 	Close = "rbxassetid://9886659671",
 	Min = "rbxassetid://9886659276",
 	Max = "rbxassetid://9886659406",
@@ -877,7 +866,7 @@ return function(Title, Desc, Parent, Hover, Config)
 
 	Element:SetTitle(Title)
 	Element:SetDesc(Desc)
-	
+
 	if Hover then
 		local Themes = Root.Themes
 		local Motor, SetTransparency = Creator.SpringMotor(
@@ -1440,8 +1429,8 @@ function TabModule:New(Title, Icon, Parent)
 			SectionTitle = SectionTitle.Title or SectionTitle.Name or "Section"
 		end
 
-		local Section = { 
-			Type = "Section" 
+		local Section = {
+			Type = "Section"
 		}
 
 		local SectionFrame = require(Components.Section)(SectionTitle, Tab.Container)
@@ -1481,7 +1470,7 @@ function TabModule:SelectTab(Tab)
 
 	task.spawn(function()
 		Window.ContainerHolder.Parent = Window.ContainerAnim
-		
+
 		Window.ContainerPosMotor:setGoal(Spring(15, { frequency = 10 }))
 		Window.ContainerBackMotor:setGoal(Spring(1, { frequency = 10 }))
 
@@ -1490,7 +1479,7 @@ function TabModule:SelectTab(Tab)
 		for _, Container in next, TabModule.Containers do
 			Container.Visible = false
 		end
-	
+
 		TabModule.Containers[Tab].Visible = true
 		Window.ContainerPosMotor:setGoal(Spring(0, { frequency = 5 }))
 		Window.ContainerBackMotor:setGoal(Spring(0, { frequency = 8 }))
@@ -1818,7 +1807,7 @@ return function(Config)
 	assert(typeof(Config.Mobile) == "table", "Config key 'Mobile' must be a table!")
 	assert(typeof(Config.Mobile.GetIcon) == "function", "Mobile Config key 'GetIcon' must be a function!")
 	assert(typeof(Config.Mobile.Size) == "UDim2", "Mobile Config key 'Size' must be a UDim2!")
-	
+
 	local ValidAlignments = { Left = true, Right = true, Top = true, Bottom = true }
 
 	local Window = {
@@ -2433,7 +2422,7 @@ end)
 			local Key = Library.MinimizeKeybind and Library.MinimizeKeybind.Value or typeof(Library.MinimizeKey) == "string" and Library.MinimizeKey or Library.MinimizeKey.Name
 
 			MinimizeNotif = true
-			
+
 			Library:Notify({
 				Title = "Interface",
 				Content = `Press {Library.Utilities:Prettify(Key)} to toggle the interface.`,
@@ -2509,7 +2498,7 @@ end)
 		Creator.AddSignal(Window.HideButton.MouseButton1Click, function()
 			Window.Minimized = not Window.Minimized
        			Window.Root.Visible = not Window.Minimized
-		end)	
+		end)
 	end
 
 	function Window:Destroy()
@@ -2713,7 +2702,7 @@ return Elements
 end)() end,
     [14] = function()local wax,script,require=ImportGlobals(14)local ImportGlobals return (function(...)local Root = script.Parent.Parent
 local Creator = require(Root.Modules.Creator)
- 
+
 local New = Creator.New
 local Components = Root.Components
 
@@ -3041,7 +3030,7 @@ function Element:New(Idx, Config)
 
 		if Dropdown.Searchable then
 			SearchBox.Text = ""
-			
+
 			if Dropdown.FocusSearch then
 				SearchBox:CaptureFocus()
 			end
@@ -3211,10 +3200,6 @@ function Element:New(Idx, Config)
 
 			local Button = Button_BuildList:Clone()
 			local ButtonSelector, ButtonLabel = Button.Frame, Button.ButtonLabel
-
-			-- AddThemeObject causes some small stuttering, the reason for that is because of 'Creator.UpdateTheme'
-			-- which is called every single time a dropdown is (re)built.
-			-- I have no idea how to optimize this so suggestions are welcome.
 
 			Creator.AddThemeObject(Button, {
 				BackgroundColor3 = "DropdownOption"
@@ -3588,7 +3573,6 @@ function Element:New(Idx, Config)
 	ParagraphFrame.Frame.BackgroundTransparency = 0.92
 	ParagraphFrame.Border.Transparency = 0.6
 
-
 	function Paragraph:OnChanged(Func)
 		Paragraph.Changed = Func
 		Library:SafeCallback(Func, Paragraph.Value, Paragraph.Value)
@@ -3670,7 +3654,7 @@ end)() end,
     [22] = function()local wax,script,require=ImportGlobals(22)local ImportGlobals return (function(...)local TweenService, UserInputService = game:GetService("TweenService"), game:GetService("UserInputService")
 local Root = script.Parent.Parent
 local Creator = require(Root.Modules.Creator)
- 
+
 local New = Creator.New
 local Components = Root.Components
 
@@ -3807,7 +3791,7 @@ ToggleFrame.DescLabel.Size = UDim2.new(1, -54, 0, 14)
 					TextColor3 = "Text",
 				},
 			})
-		
+
 			local KeybindDisplayFrame: TextButton = New("TextButton", {
 				Size = UDim2.fromOffset(0, 30),
 				Position = UDim2.new(1, -10, 0.5, 0),
@@ -3847,25 +3831,25 @@ ToggleFrame.DescLabel.Size = UDim2.new(1, -54, 0, 14)
 					end
 				end
 			})
-	
+
 			local function UpdateTogglePosition()
 				ToggleSlider.Position = UDim2.new(1, KeybindDisplayFrame.Position.X.Offset - KeybindDisplayFrame.AbsoluteSize.X - 10, 0.5, 0)
 			end
-	
+
 			function Keybind:GetState()
 				if UserInputService:GetFocusedTextBox() and self.Mode ~= "Always" then
 					return false
 				end
-		
+
 				if self.Mode == "Always" then
 					return true
 				elseif self.Mode == "Hold" then
 					if self.Value == "None" then
 						return false
 					end
-		
+
 					local Key = self.Value
-		
+
 					if Key == "LeftMousebutton" or Key == "RightMousebutton" then
 						return Key == "LeftMousebutton" and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
 							or Key == "RightMousebutton"
@@ -3877,29 +3861,29 @@ ToggleFrame.DescLabel.Size = UDim2.new(1, -54, 0, 14)
 					return self.Toggled
 				end
 			end
-		
+
 			function Keybind:SetValue(Key, Mode)
 				Key = Key or self.Value
 				Mode = Mode or self.Mode
-		
+
 				self.Value = Key
 				self.Mode = Mode
-		
+
 				KeybindDisplayLabel.Text = Library.Utilities:Prettify(self.Value)
 			end
-		
+
 			function Keybind:OnClick(Callback)
 				self.Clicked = Callback
 			end
-		
+
 			function Keybind:OnChanged(Callback)
 				self.Changed = Callback
 				Library:SafeCallback(Callback, self.Value, self.Value)
 			end
-		
+
 			function Keybind:DoClick()
 				Toggle:SetValue(not Toggle.Value)
-				
+
 				if typeof(self.Callback) == "function" then
 					Library:SafeCallback(self.Callback, self.Value)
 				end
@@ -3907,14 +3891,14 @@ ToggleFrame.DescLabel.Size = UDim2.new(1, -54, 0, 14)
 					Library:SafeCallback(self.Clicked, self.Value)
 				end
 			end
-		
+
 			function Keybind:Destroy()
 				KeybindDisplayFrame.Size = UDim2.new()
 				KeybindDisplayFrame.Position = UDim2.new()
 				KeybindDisplayFrame:Destroy()
 				Library.Options[Idx] = nil
 			end
-		
+
 			Creator.AddSignal(KeybindDisplayFrame.InputBegan, function(Input)
 				if
 					Input.UserInputType == Enum.UserInputType.MouseButton1
@@ -3923,12 +3907,12 @@ ToggleFrame.DescLabel.Size = UDim2.new(1, -54, 0, 14)
 					Picking = true
 					local PreviousLabel = KeybindDisplayLabel.Text
 					KeybindDisplayLabel.Text = "..."
-		
+
 					task.wait(0.2)
-		
+
 					UserInputService.InputBegan:Once(function(Input)
 						local Key
-		
+
 						if Input.UserInputType == Enum.UserInputType.Keyboard then
 							Key = Input.KeyCode.Name
 						elseif Input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -3936,13 +3920,13 @@ ToggleFrame.DescLabel.Size = UDim2.new(1, -54, 0, 14)
 						elseif Input.UserInputType == Enum.UserInputType.MouseButton2 then
 							Key = "RightMousebutton"
 						end
-		
+
 						if Key == "Escape" then
 							Picking = false
 							KeybindDisplayLabel.Text = PreviousLabel
 							return
 						end
-		
+
 						UserInputService.InputEnded:Once(function(Input)
 							if (Input.KeyCode.Name == Key
 								or Key == "LeftMousebutton" and Input.UserInputType == Enum.UserInputType.MouseButton1
@@ -3950,9 +3934,9 @@ ToggleFrame.DescLabel.Size = UDim2.new(1, -54, 0, 14)
 								and not Library.Unloaded
 							then
 								Picking = false
-		
+
 								Keybind:SetValue(Key)
-		
+
 								Library:SafeCallback(self.ChangedCallback, Input.KeyCode or Input.UserInputType)
 								Library:SafeCallback(self.Changed, Input.KeyCode or Input.UserInputType)
 							end
@@ -3960,7 +3944,7 @@ ToggleFrame.DescLabel.Size = UDim2.new(1, -54, 0, 14)
 					end)
 				end
 			end)
-		
+
 			Creator.AddSignal(UserInputService.InputBegan, function(Input)
 				if not Picking and not UserInputService:GetFocusedTextBox() then
 					if Keybind.Mode == "Toggle" then
@@ -3983,13 +3967,13 @@ ToggleFrame.DescLabel.Size = UDim2.new(1, -54, 0, 14)
 					end
 				end
 			end)
-	
+
 			Creator.AddSignal(KeybindDisplayFrame:GetPropertyChangedSignal("AbsoluteSize"), UpdateTogglePosition)
 
 			Library.Options[Idx] = Keybind
 
 			Toggle.Keybind = Keybind
-	
+
 			return setmetatable(Toggle.Keybind, {
 				__newindex =  function(self, index, newvalue)
 					if index == "Value" then
@@ -4447,7 +4431,7 @@ end
 function Creator.Disconnect()
 	for Idx = #Creator.Signals, 1, -1 do
 		local Connection = table.remove(Creator.Signals, Idx)
-		
+
 		if Connection then
 			Connection:Disconnect()
 		end
@@ -4499,7 +4483,7 @@ function Creator.UpdateTheme(RegistryIndex: Instance?)
 				Object.Object[Property] = Creator.GetThemeProperty(ColorIdx)
 			end
 		end
-	end	
+	end
 
 	for Idx: number, Motor in next, Creator.TransparencyMotors do
 		if Idx % 135 == 0 then
@@ -4660,14 +4644,12 @@ return {
     ['Max'] = "rbxassetid://9886659406",
     ['Restore'] = "rbxassetid://9886659001",
 
-    -- Used internally by the original Button element.
     ['chevron-right'] = {
         ImageRectSize = Vector2.new(64, 64),
         ImageRectOffset = Vector2.new(448, 192),
         Image = icons_2
     },
 
-    -- Used by the original Window mobile minimize button.
     ['phosphor-eye-slash'] = {
         ImageRectSize = Vector2.new(64, 64),
         ImageRectOffset = Vector2.new(576, 960),
@@ -4679,7 +4661,6 @@ return {
         Image = icons_17
     },
 
-    -- The two tab icons used by Auto Progress.
     ['bot'] = {
         ImageRectSize = Vector2.new(64, 64),
         ImageRectOffset = Vector2.new(192, 832),
@@ -4759,13 +4740,7 @@ end)() end,
     [155] = function()local wax,script,require=ImportGlobals(155)local ImportGlobals return (function(...)return require(script.Parent._Index["lucasmzreal_fastsignal@10.4.0"]["fastsignal"])
 
 end)() end,
-    [183] = function()local wax,script,require=ImportGlobals(183)local ImportGlobals return (function(...)--!nocheck
---!optimize 2
---!native
-
---[[
-	This script deals with typing and automatic choosing of the right variant depending on what your experience is currently running.
-]]
+    [183] = function()local wax,script,require=ImportGlobals(183)local ImportGlobals return (function(...)
 
 local IsDeferred: boolean do
 	IsDeferred = false
@@ -4781,15 +4756,11 @@ local IsDeferred: boolean do
 	bindable:Destroy()
 
 	if handlerRun == false then
-		-- In Deferred mode, things run "later", we can take advantage of this to detect the mode active,
-		-- by checking whether a :Fire call manages to change a variable right away, we are able to detect
-		-- whether Immediate or Deferred mode is being used.
-		
+
 		IsDeferred = true
 	end
 end
 
--- These were copied and modified from sleitnick's fork of GoodSignal, thanks sleitnick!
 export type ScriptSignal<T...> = {
 	IsActive: (self: ScriptSignal<T...>) -> boolean,
 	Fire: (self: ScriptSignal<T...>, T...) -> (),
@@ -4804,7 +4775,6 @@ export type ScriptConnection = {
 	Connected: boolean,
 }
 
--- Legacy type. Do not use in newer work.
 export type Class = ScriptSignal<...any>
 
 local ChosenSignal: typeof( require(script.Docs) ) = IsDeferred
@@ -4813,8 +4783,7 @@ local ChosenSignal: typeof( require(script.Docs) ) = IsDeferred
 
 return ChosenSignal
 end)() end,
-    [184] = function()local wax,script,require=ImportGlobals(184)local ImportGlobals return (function(...)--!optimize 2
---!native
+    [184] = function()local wax,script,require=ImportGlobals(184)local ImportGlobals return (function(...)
 
 export type ScriptSignal<T...> = {
 	IsActive: (self: ScriptSignal<T...>) -> boolean,
@@ -4830,7 +4799,6 @@ export type ScriptConnection = {
 	Connected: boolean,
 }
 
--- Legacy type. Do not use in newer work.
 export type Class = ScriptSignal<...any>
 
 local ScriptSignal = {}
@@ -4991,7 +4959,6 @@ function ScriptConnection:Disconnect()
 	if _prev ~= nil then
 		_prev._next = _next
 	else
-		-- _node == _signal._head
 
 		_node._signal._head = _next
 	end
@@ -5003,9 +4970,7 @@ ScriptConnection.Destroy = ScriptConnection.Disconnect
 
 return ScriptSignal :: typeof( require(script.Parent.Docs) )
 end)() end,
-    [185] = function()local wax,script,require=ImportGlobals(185)local ImportGlobals return (function(...)--[[
-	Meant to hold docs. Makes it easier to mess with them individually.
-]]
+    [185] = function()local wax,script,require=ImportGlobals(185)local ImportGlobals return (function(...)
 
 if true then
 	error("This is not supposed to run!")
@@ -5025,207 +4990,54 @@ export type ScriptConnection = {
 	Connected: boolean,
 }
 
--- Legacy type. Do not use in newer work.
 export type Class = ScriptSignal<...any>
 
--- Methods:
-
---[=[
-	A class which holds data and methods for ScriptSignals.
-
-	@class ScriptSignal
-]=]
 local ScriptSignal = {}
 ScriptSignal.__index = ScriptSignal
 
---[=[
-	A class which holds data and methods for ScriptConnections.
-
-	@class ScriptConnection
-]=]
 local ScriptConnection = {}
 ScriptConnection.__index = ScriptConnection
 
---[=[
-	A boolean which determines if a ScriptConnection is active or not.
-
-	@prop Connected boolean
-	@within ScriptConnection
-
-	@readonly
-]=]
-
---[=[
-	Creates a ScriptSignal object.
-
-	@return ScriptSignal
-]=]
 function ScriptSignal.new()
 	return {}
 end
 
---[=[
-	Returns a boolean determining if the object is a ScriptSignal.
-
-	```lua
-	local janitor = Janitor.new()
-	local signal = ScriptSignal.new()
-
-	ScriptSignal.Is(signal) -> true
-	ScriptSignal.Is(janitor) -> false
-	```
-
-	@param object any
-	@return boolean
-]=]
 function ScriptSignal.Is(object)
 	return true
 end
 
---[=[
-	Returns a boolean which determines if a ScriptSignal object is active.
-
-	```lua
-	ScriptSignal:IsActive() -> true
-	ScriptSignal:Destroy()
-	ScriptSignal:IsActive() -> false
-	```
-
-	@return boolean
-]=]
 function ScriptSignal:IsActive()
 	return true
 end
 
---[=[
-	Connects a handler to a ScriptSignal object.
-
-	```lua
-	ScriptSignal:Connect(function(text)
-		print(text)
-	end)
-
-	ScriptSignal:Fire("Something")
-	ScriptSignal:Fire("Something else")
-
-	-- "Something" and then "Something else" are printed
-	```
-
-	@param handler (...: any) -> ()
-	@return ScriptConnection
-]=]
 function ScriptSignal:Connect(handler)
 
 end
 
---[=[
-	Connects a handler to a ScriptSignal object, but only allows that
-	connection to run once. Any `:Fire` calls called afterwards won't trigger anything.
-
-	```lua
-	ScriptSignal:Once(function()
-		print("Connection fired")
-	end)
-
-	ScriptSignal:Fire()
-	ScriptSignal:Fire()
-
-	-- "Connection fired" is only fired once
-	```
-
-	@param handler (...: any) -> ()
-	@return ScriptConnection
-]=]
 function ScriptSignal:Once(handler)
 
 end
 
---[=[
-	Yields the thread until a `:Fire` call occurs, returns what the signal was fired with.
-
-	```lua
-	task.spawn(function()
-		print(
-			ScriptSignal:Wait()
-		)
-	end)
-
-	ScriptSignal:Fire("Arg", nil, 1, 2, 3, nil)
-	-- "Arg", nil, 1, 2, 3, nil are printed
-	```
-
-	@yields
-	@return ...any
-]=]
 function ScriptSignal:Wait()
-	
+
 end
 
---[=[
-	Fires a ScriptSignal object with the arguments passed.
-
-	```lua
-	ScriptSignal:Connect(function(text)
-		print(text)
-	end)
-
-	ScriptSignal:Fire("Some Text...")
-
-	-- "Some Text..." is printed twice
-	```
-
-	@param ... any
-]=]
 function ScriptSignal:Fire(...)
-	
+
 end
 
---[=[
-	Disconnects all connections from a ScriptSignal object without making it unusable.
-
-	```lua
-	local connection = ScriptSignal:Connect(function() end)
-
-	connection.Connected -> true
-	ScriptSignal:DisconnectAll()
-	connection.Connected -> false
-	```
-]=]
 function ScriptSignal:DisconnectAll()
-	
+
 end
 
---[=[
-	Destroys a ScriptSignal object, disconnecting all connections and making it unusable.
-
-	```lua
-	ScriptSignal:Destroy()
-
-	local connection = ScriptSignal:Connect(function() end)
-	connection.Connected -> false
-	```
-]=]
 function ScriptSignal:Destroy()
-	
+
 end
 
---[=[
-	Disconnects a connection, any `:Fire` calls from now on will not
-	invoke this connection's handler.
-
-	```lua
-	local connection = ScriptSignal:Connect(function() end)
-
-	connection.Connected -> true
-	connection:Disconnect()
-	connection.Connected -> false
-	```
-]=]
 function ScriptConnection:Disconnect()
-	
+
 end
 
--- Stricter type
 local returnType = {}
 
 function returnType.new<T...>(): ScriptSignal<T...>
@@ -5238,8 +5050,7 @@ end
 
 return returnType
 end)() end,
-    [186] = function()local wax,script,require=ImportGlobals(186)local ImportGlobals return (function(...)--!optimize 2
---!native
+    [186] = function()local wax,script,require=ImportGlobals(186)local ImportGlobals return (function(...)
 
 export type ScriptSignal<T...> = {
 	IsActive: (self: ScriptSignal<T...>) -> boolean,
@@ -5255,7 +5066,6 @@ export type ScriptConnection = {
 	Connected: boolean,
 }
 
--- Legacy type. Do not use in newer work.
 export type Class = ScriptSignal<...any>
 
 local MainScriptSignal = require(script.Parent.Deferred)
@@ -5324,7 +5134,7 @@ end)() end,
 	Instant = require(script.Instant),
 	Linear = require(script.Linear),
 	Spring = require(script.Spring),
-	
+
 	isMotor = require(script.isMotor),
 }
 
@@ -5444,7 +5254,7 @@ function GroupMotor:step(deltaTime)
 	for _, motor in pairs(self._motors) do
 		local complete = motor:step(deltaTime)
 		if not complete then
-			-- If any of the sub-motors are incomplete, the group motor will not be complete either
+
 			allMotorsComplete = false
 		end
 	end
@@ -5519,7 +5329,7 @@ Linear.__index = Linear
 
 function Linear.new(targetValue, options)
 	assert(targetValue, "Missing argument #1: targetValue")
-	
+
 	options = options or {}
 
 	return setmetatable({
@@ -5530,7 +5340,7 @@ end
 
 function Linear:step(state, dt)
 	local position = state.value
-	local velocity = self._velocity -- Linear motion ignores the state's velocity
+	local velocity = self._velocity
 	local goal = self._targetValue
 
 	local dPos = dt * velocity
@@ -5541,7 +5351,7 @@ function Linear:step(state, dt)
 		position = self._targetValue
 		velocity = 0
 	end
-	
+
 	return {
 		complete = complete,
 		value = position,
@@ -5593,7 +5403,7 @@ function Signal:fire(...)
 	for _, thread in pairs(self._threads) do
 		coroutine.resume(thread, ...)
 	end
-	
+
 	self._threads = {}
 end
 
@@ -5699,9 +5509,6 @@ function Spring.new(targetValue, options)
 end
 
 function Spring:step(state, dt)
-	-- Copyright 2018 Parker Stebbins (parker@fractality.io)
-	-- github.com/Fraktality/Spring
-	-- Distributed under the MIT license
 
 	local d = self._dampingRatio
 	local f = self._frequency*2*math.pi
@@ -5714,26 +5521,14 @@ function Spring:step(state, dt)
 
 	local p1, v1
 
-	if d == 1 then -- Critically damped
+	if d == 1 then
 		p1 = (offset*(1 + f*dt) + v0*dt)*decay + g
 		v1 = (v0*(1 - f*dt) - offset*(f*f*dt))*decay
-	elseif d < 1 then -- Underdamped
+	elseif d < 1 then
 		local c = math.sqrt(1 - d*d)
 
 		local i = math.cos(f*c*dt)
 		local j = math.sin(f*c*dt)
-
-		-- Damping ratios approaching 1 can cause division by small numbers.
-		-- To fix that, group terms around z=j/c and find an approximation for z.
-		-- Start with the definition of z:
-		--    z = sin(dt*f*c)/c
-		-- Substitute a=dt*f:
-		--    z = sin(a*c)/c
-		-- Take the Maclaurin expansion of z with respect to c:
-		--    z = a - (a^3*c^2)/6 + (a^5*c^4)/120 + O(c^6)
-		--    z ≈ a - (a^3*c^2)/6 + (a^5*c^4)/120
-		-- Rewrite in Horner form:
-		--    z ≈ a + ((a*a)*(c*c)*(c*c)/20 - c*c)*(a*a*a)/6
 
 		local z
 		if c > EPS then
@@ -5742,13 +5537,6 @@ function Spring:step(state, dt)
 			local a = dt*f
 			z = a + ((a*a)*(c*c)*(c*c)/20 - c*c)*(a*a*a)/6
 		end
-
-		-- Frequencies approaching 0 present a similar problem.
-		-- We want an approximation for y as f approaches 0, where:
-		--    y = sin(dt*f*c)/(f*c)
-		-- Substitute b=dt*c:
-		--    y = sin(b*c)/b
-		-- Now reapply the process from z.
 
 		local y
 		if f*c > EPS then
@@ -5761,7 +5549,7 @@ function Spring:step(state, dt)
 		p1 = (offset*(i + d*z) + v0*y)*decay + g
 		v1 = (v0*(i - z*d) - offset*(z*f))*decay
 
-	else -- Overdamped
+	else
 		local c = math.sqrt(d*d - 1)
 
 		local r1 = -f*(d - c)
@@ -5778,7 +5566,7 @@ function Spring:step(state, dt)
 	end
 
 	local complete = math.abs(v1) < VELOCITY_THRESHOLD and math.abs(p1 - g) < POSITION_THRESHOLD
-	
+
 	return {
 		complete = complete,
 		value = complete and g or p1,
@@ -5800,9 +5588,8 @@ end
 
 return isMotor
 end)() end,
-} -- [RefId] = Closure
+}
 
--- Holds the actual DOM data
 local ObjectTree = {
     {
             1,
@@ -6159,7 +5946,6 @@ local ObjectTree = {
         }
 }
 
--- Line offsets for debugging (rebuilt for this slim bundle)
 local LineOffsets = {
     [1] = 8,
     [3] = 504,
@@ -6207,15 +5993,12 @@ local LineOffsets = {
 local WaxVersion = "0.4.1"
 local EnvName = "Fluent Renewed"
 
--- ++++++++ RUNTIME IMPL BELOW ++++++++ --
-
--- Localizing certain libraries and built-ins for runtime efficiency
 local string, task, setmetatable, error, next, table, unpack, coroutine, script, type, require, pcall, xpcall, tostring, tonumber, _VERSION =
       string, task, setmetatable, error, next, table, unpack, coroutine, script, type, require, pcall, xpcall, tostring, tonumber, _VERSION
 
 local table_insert = table.insert
 local table_remove = table.remove
-local table_freeze = table.freeze or function(t) return t end -- lol
+local table_freeze = table.freeze or function(t) return t end
 
 local coroutine_wrap = coroutine.wrap
 
@@ -6223,8 +6006,6 @@ local string_sub = string.sub
 local string_match = string.match
 local string_gmatch = string.gmatch
 
--- The Lune runtime has its own `task` impl, but it must be imported by its builtin
--- module path, "@lune/task"
 if _VERSION and string_sub(_VERSION, 1, 4) == "Lune" then
     local RequireSuccess, LuneTaskLib = pcall(require, "@lune/task")
     if RequireSuccess and LuneTaskLib then
@@ -6234,12 +6015,10 @@ end
 
 local task_defer = task and task.defer
 
--- If we're not running on the Roblox engine, we won't have a `task` global
 local Defer = task_defer or function(f, ...)
     coroutine_wrap(f)(...)
 end
 
--- ClassName "IDs"
 local ClassNameIdBindings = {
     [1] = "Folder",
     [2] = "ModuleScript",
@@ -6248,21 +6027,17 @@ local ClassNameIdBindings = {
     [5] = "StringValue",
 }
 
-local RefBindings = {} -- [RefId] = RealObject
+local RefBindings = {}
 
 local ScriptClosures = {}
-local ScriptClosureRefIds = {} -- [ScriptClosure] = RefId
+local ScriptClosureRefIds = {}
 local StoredModuleValues = {}
 local ScriptsToRun = {}
 
--- wax.shared __index/__newindex
 local SharedEnvironment = {}
 
--- We're creating 'fake' instance refs soley for traversal of the DOM for require() compatibility
--- It's meant to be as lazy as possible
-local RefChildren = {} -- [Ref] = {ChildrenRef, ...}
+local RefChildren = {}
 
--- Implemented instance methods
 local InstanceMethods = {
     GetFullName = { {}, function(self)
         local Path = self.Name
@@ -6271,7 +6046,6 @@ local InstanceMethods = {
         while ObjectPointer do
             Path = ObjectPointer.Name .. "." .. Path
 
-            -- Move up the DOM (parent will be nil at the end, and this while loop will stop)
             ObjectPointer = ObjectPointer.Parent
         end
 
@@ -6313,8 +6087,7 @@ local InstanceMethods = {
 
         if recursive then
             for Child in next, Children do
-                -- Yeah, Roblox follows this behavior- instead of searching the entire base of a
-                -- ref first, the engine uses a direct recursive call
+
                 return Child:FindFirstChild(name, true)
             end
         end
@@ -6331,13 +6104,11 @@ local InstanceMethods = {
         end
     end},
 
-    -- Just to implement for traversal usage
     WaitForChild = { {"string", "number?"}, function(self, name)
         return self:FindFirstChild(name)
     end},
 }
 
--- "Proxies" to instance methods, with err checks etc
 local InstanceMethodProxies = {}
 for MethodName, MethodObject in next, InstanceMethods do
     local Types = MethodObject[1]
@@ -6374,15 +6145,11 @@ for MethodName, MethodObject in next, InstanceMethods do
 end
 
 local function CreateRef(className, name, parent)
-    -- `name` and `parent` can also be set later by the init script if they're absent
 
-    -- Extras
     local StringValue_Value
 
-    -- Will be set to RefChildren later aswell
     local Children = setmetatable({}, {__mode = "k"})
 
-    -- Err funcs
     local function InvalidMember(member)
         error(member .. " is not a valid (virtual) member of " .. className .. " \"" .. name .. "\"", 3)
     end
@@ -6396,16 +6163,16 @@ local function CreateRef(className, name, parent)
     RefMetatable.__metatable = false
 
     RefMetatable.__index = function(_, index)
-        if index == "ClassName" then -- First check "properties"
+        if index == "ClassName" then
             return className
         elseif index == "Name" then
             return name
         elseif index == "Parent" then
             return parent
         elseif className == "StringValue" and index == "Value" then
-            -- Supporting StringValue.Value for Rojo .txt file conv
+
             return StringValue_Value
-        else -- Lastly, check "methods"
+        else
             local InstanceMethod = InstanceMethodProxies[index]
 
             if InstanceMethod then
@@ -6413,45 +6180,43 @@ local function CreateRef(className, name, parent)
             end
         end
 
-        -- Next we'll look thru child refs
         for Child in next, Children do
             if Child.Name == index then
                 return Child
             end
         end
 
-        -- At this point, no member was found; this is the same err format as Roblox
         InvalidMember(index)
     end
 
     RefMetatable.__newindex = function(_, index, value)
-        -- __newindex is only for props fyi
+
         if index == "ClassName" then
             ReadOnlyProperty(index)
         elseif index == "Name" then
             name = value
         elseif index == "Parent" then
-            -- We'll just ignore the process if it's trying to set itself
+
             if value == Ref then
                 return
             end
 
             if parent ~= nil then
-                -- Remove this ref from the CURRENT parent
+
                 RefChildren[parent][Ref] = nil
             end
 
             parent = value
 
             if value ~= nil then
-                -- And NOW we're setting the new parent
+
                 RefChildren[value][Ref] = true
             end
         elseif className == "StringValue" and index == "Value" then
-            -- Supporting StringValue.Value for Rojo .txt file conv
+
             StringValue_Value = value
         else
-            -- Same err as __index when no member is found
+
             InvalidMember(index)
         end
     end
@@ -6471,18 +6236,17 @@ local function CreateRef(className, name, parent)
     return Ref
 end
 
--- Create real ref DOM from object tree
 local function CreateRefFromObject(object, parent)
     local RefId = object[1]
     local ClassNameId = object[2]
-    local Properties = object[3] -- Optional
-    local Children = object[4] -- Optional
+    local Properties = object[3]
+    local Children = object[4]
 
     local ClassName = ClassNameIdBindings[ClassNameId]
 
     local Name = Properties and table_remove(Properties, 1) or ClassName
 
-    local Ref = CreateRef(ClassName, Name, parent) -- 3rd arg may be nil if this is from root
+    local Ref = CreateRef(ClassName, Name, parent)
     RefBindings[RefId] = Ref
 
     if Properties then
@@ -6505,7 +6269,6 @@ for _, Object in next, ObjectTree do
     CreateRefFromObject(Object, RealObjectRoot)
 end
 
--- Now we'll set script closure refs and check if they should be ran as a BaseScript
 for RefId, Closure in next, ClosureBindings do
     local Ref = RefBindings[RefId]
 
@@ -6521,7 +6284,6 @@ end
 local function LoadScript(scriptRef)
     local ScriptClassName = scriptRef.ClassName
 
-    -- First we'll check for a cached module value (packed into a tbl)
     local StoredModuleValue = StoredModuleValues[scriptRef]
     if StoredModuleValue and ScriptClassName == "ModuleScript" then
         return unpack(StoredModuleValue)
@@ -6534,7 +6296,6 @@ local function LoadScript(scriptRef)
 
         local VirtualFullName = scriptRef:GetFullName()
 
-        -- Check for vanilla/Roblox format
         local OriginalErrorLine, BaseErrorMessage = string_match(originalErrorMessage, "[^:]+:(%d+): (.+)")
 
         if not OriginalErrorLine or not LineOffsets then
@@ -6554,7 +6315,6 @@ local function LoadScript(scriptRef)
         return VirtualFullName .. ":" .. RealErrorLine .. ": " .. BaseErrorMessage
     end
 
-    -- If it's a BaseScript, we'll just run it directly!
     if ScriptClassName == "LocalScript" or ScriptClassName == "Script" then
         local RunSuccess, ErrorMessage = xpcall(Closure, function(msg)
             return debug.traceback(msg, 2)
@@ -6578,8 +6338,6 @@ local function LoadScript(scriptRef)
     end
 end
 
--- We'll assign the actual func from the top of this output for flattening user globals at runtime
--- Returns (in a tuple order): wax, script, require
 function ImportGlobals(refId)
     local ScriptRef = RefBindings[refId]
 
@@ -6596,7 +6354,6 @@ function ImportGlobals(refId)
         return unpack(PCallReturn)
     end
 
-    -- `wax.shared` index
     local WaxShared = table_freeze(setmetatable({}, {
         __index = SharedEnvironment,
         __newindex = function(_, index, value)
@@ -6611,13 +6368,12 @@ function ImportGlobals(refId)
     }))
 
     local Global_wax = table_freeze({
-        -- From AOT variable imports
+
         version = WaxVersion,
         envname = EnvName,
 
         shared = WaxShared,
 
-        -- "Real" globals instead of the env set ones
         script = script,
         require = require,
     })
@@ -6639,7 +6395,6 @@ function ImportGlobals(refId)
 
             return LoadScript(module)
         elseif ModuleArgType == "string" and string_sub(module, 1, 1) ~= "@" then
-            -- The control flow on this SUCKS
 
             if #module == 0 then
                 error("Attempted to call require with empty string", 2)
@@ -6660,7 +6415,6 @@ function ImportGlobals(refId)
                     RealIndex = "Parent"
                 end
 
-                -- Don't advance dir if it's just another "/" either
                 if RealIndex ~= "" then
                     local ResultRef = CurrentRefPointer:FindFirstChild(RealIndex)
                     if not ResultRef then
@@ -6677,7 +6431,6 @@ function ImportGlobals(refId)
                     end
                 end
 
-                -- For possible checks next cycle
                 PreviousPathMatch = PathMatch
             end
 
@@ -6693,7 +6446,6 @@ function ImportGlobals(refId)
         return RealCall(require, module, ...)
     end
 
-    -- Now, return flattened globals ready for direct runtime exec
     return Global_wax, Global_script, Global_require
 end
 
@@ -6701,5 +6453,4 @@ for _, ScriptRef in next, ScriptsToRun do
     Defer(LoadScript, ScriptRef)
 end
 
--- AoT adjustment: Load init module (MainModule behavior)
 return LoadScript(RealObjectRoot:GetChildren()[1])
