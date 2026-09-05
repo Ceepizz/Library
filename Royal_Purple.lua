@@ -2258,7 +2258,7 @@ task.spawn(function()
 end)
 
 	Window.HideButton = New("ImageButton", {
-		Visible = Library.Utilities:GetOS() == "Mobile",
+		Visible = false,
 		Size = Config.Mobile.Size,
 		BackgroundTransparency = 1,
 		Position = UDim2.new(1, -Config.Mobile.Size.X.Offset - 25, 0.5, -Config.Mobile.Size.Y.Offset / 2),
@@ -2266,6 +2266,66 @@ end)
 		Image = Config.Mobile.GetIcon(false).Image,
 		ImageRectOffset = Config.Mobile.GetIcon(false).ImageRectOffset,
 		ImageRectSize = Config.Mobile.GetIcon(false).ImageRectSize
+	})
+
+	local function ResolveFloatingLogo(Value)
+		if typeof(Value) == "number" then
+			return "rbxassetid://" .. tostring(Value)
+		elseif typeof(Value) == "string" then
+			if Value:find("^rbxassetid://") then
+				return Value
+			elseif tonumber(Value) then
+				return "rbxassetid://" .. Value
+			end
+		end
+
+		return "rbxassetid://88505209802501"
+	end
+
+	local FloatingLogoImage = New("ImageLabel", {
+		Name = "CloseUIImage",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundTransparency = 1,
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(50, 50),
+		Image = ResolveFloatingLogo(Config.Icon),
+		ImageTransparency = 0,
+		ScaleType = Enum.ScaleType.Fit,
+		ZIndex = 202,
+	})
+
+	local FloatingLogoBackground = New("Frame", {
+		Name = "BackgroundCloseUI",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundColor3 = Color3.fromRGB(24, 24, 31),
+		BorderSizePixel = 0,
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, -10, 1, -10),
+		ZIndex = 201,
+	}, {
+		New("UICorner", {
+			CornerRadius = UDim.new(0, 8),
+		}),
+		FloatingLogoImage,
+	})
+
+	Window.CloseUIShadow = New("ImageButton", {
+		Name = "CloseUIShadow",
+		Visible = false,
+		Active = true,
+		AutoButtonColor = false,
+		BackgroundTransparency = 1,
+		Position = UDim2.new(0, 0, 0.2, 0),
+		Size = UDim2.fromOffset(70, 70),
+		Parent = Config.Parent,
+		Image = "rbxassetid://1316045217",
+		ImageColor3 = Color3.fromRGB(24, 24, 31),
+		ImageTransparency = 0.5,
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(10, 10, 118, 118),
+		ZIndex = 200,
+	}, {
+		FloatingLogoBackground,
 	})
 
 	Window.TitleBar = require(script.Parent.TitleBar)({
@@ -2470,6 +2530,10 @@ end)
 		Window.Minimized = not Window.Minimized
 		Window.Root.Visible = not Window.Minimized
 
+		if Window.CloseUIShadow then
+			Window.CloseUIShadow.Visible = Window.Minimized
+		end
+
 		Window.OnMinimized:Fire(tick(), Window.Root.Visible)
 
 		if not MinimizeNotif then
@@ -2487,10 +2551,87 @@ end)
 			local Icon = Config.Mobile.GetIcon(Window.Minimized)
 			Window.HideButton.Image = Icon.Image
 			Window.HideButton.ImageRectOffset = Icon.ImageRectOffset
-			Window.HideButton.ImageRectSize = Icon.ImageRectSiz
+			Window.HideButton.ImageRectSize = Icon.ImageRectSize
 		end
 		Window.PostMinimized:Fire(tick(), Window.Root.Visible)
 	end
+
+	local FloatingDragging = false
+	local FloatingDragInput = nil
+	local FloatingDragStart = nil
+	local FloatingStartPos = nil
+	local FloatingMoved = false
+
+	Creator.AddSignal(Window.CloseUIShadow.InputBegan, function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseButton1
+			or Input.UserInputType == Enum.UserInputType.Touch then
+			FloatingDragging = true
+			FloatingMoved = false
+			FloatingDragStart = Input.Position
+			FloatingStartPos = Window.CloseUIShadow.Position
+
+			Input.Changed:Connect(function()
+				if Input.UserInputState == Enum.UserInputState.End then
+					FloatingDragging = false
+				end
+			end)
+		end
+	end)
+
+	Creator.AddSignal(Window.CloseUIShadow.InputChanged, function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseMovement
+			or Input.UserInputType == Enum.UserInputType.Touch then
+			FloatingDragInput = Input
+		end
+	end)
+
+	Creator.AddSignal(UserInputService.InputChanged, function(Input)
+		if Input == FloatingDragInput and FloatingDragging then
+			local Delta = Input.Position - FloatingDragStart
+
+			if Delta.Magnitude > 5 then
+				FloatingMoved = true
+			end
+
+			Window.CloseUIShadow.Position = UDim2.new(
+				FloatingStartPos.X.Scale,
+				FloatingStartPos.X.Offset + Delta.X,
+				FloatingStartPos.Y.Scale,
+				FloatingStartPos.Y.Offset + Delta.Y
+			)
+		end
+	end)
+
+	Creator.AddSignal(Window.CloseUIShadow.MouseButton1Click, function()
+		if FloatingMoved then
+			FloatingMoved = false
+			return
+		end
+
+		FloatingLogoImage:TweenSize(
+			UDim2.fromOffset(45, 45),
+			Enum.EasingDirection.Out,
+			Enum.EasingStyle.Back,
+			0.08,
+			true
+		)
+
+		task.delay(0.06, function()
+			if FloatingLogoImage and FloatingLogoImage.Parent then
+				FloatingLogoImage:TweenSize(
+					UDim2.fromOffset(50, 50),
+					Enum.EasingDirection.Out,
+					Enum.EasingStyle.Back,
+					0.12,
+					true
+				)
+			end
+		end)
+
+		if Window.Minimized then
+			Window:Minimize()
+		end
+	end)
 
 	Creator.AddSignal(UserInputService.InputBegan, function(Input)
 		if
@@ -2556,6 +2697,10 @@ end)
 	end
 
 	function Window:Destroy()
+		if Window.CloseUIShadow then
+			Window.CloseUIShadow:Destroy()
+		end
+
 		if Library.UseAcrylic then
 			Window.AcrylicPaint.Model:Destroy()
 		end
