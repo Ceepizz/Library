@@ -266,6 +266,157 @@ return function(Config)
 		ResizeStartFrame,
 	})
 
+local AccountInfo = Instance.new("Frame")
+local AvatarFrame = Instance.new("Frame")
+local AvatarImage = Instance.new("ImageLabel")
+local InfoFrame = Instance.new("Frame")
+local UsernameLabel = Instance.new("TextLabel")
+local TypeLabel = Instance.new("TextLabel")
+local ExpiryLabel = Instance.new("TextLabel")
+
+local LocalPlayer = game:GetService("Players").LocalPlayer
+
+AccountInfo.Name = "AccountInfo"
+AccountInfo.Parent = Window.Root
+AccountInfo.BackgroundTransparency = 1
+AccountInfo.BorderSizePixel = 0
+AccountInfo.AnchorPoint = Vector2.new(0, 1)
+AccountInfo.Position = UDim2.new(0, 16, 1, -11)
+AccountInfo.Size = UDim2.new(0, 150, 0, 66)
+
+AvatarFrame.Name = "AvatarFrame"
+AvatarFrame.Parent = AccountInfo
+AvatarFrame.BackgroundColor3 = Color3.fromRGB(140, 60, 220)
+AvatarFrame.BorderSizePixel = 0
+AvatarFrame.AnchorPoint = Vector2.new(0, 0.5)
+AvatarFrame.Position = UDim2.new(0, 0, 0.5, 0)
+AvatarFrame.Size = UDim2.new(0, 40, 0, 40)
+
+local AvatarCorner = Instance.new("UICorner")
+AvatarCorner.CornerRadius = UDim.new(1, 0)
+AvatarCorner.Parent = AvatarFrame
+
+AvatarImage.Name = "AvatarImage"
+AvatarImage.Parent = AvatarFrame
+AvatarImage.BackgroundTransparency = 1
+AvatarImage.Size = UDim2.new(1, 0, 1, 0)
+AvatarImage.Position = UDim2.new(0, 0, 0, 0)
+
+pcall(function()
+    if LocalPlayer then
+        AvatarImage.Image =
+            "rbxthumb://type=AvatarHeadShot&id="
+            .. LocalPlayer.UserId
+            .. "&w=48&h=48"
+    end
+end)
+
+InfoFrame.Name = "Info"
+InfoFrame.Parent = AccountInfo
+InfoFrame.BackgroundTransparency = 1
+InfoFrame.AnchorPoint = Vector2.new(0, 0.5)
+InfoFrame.Position = UDim2.new(0, 48, 0.5, 0)
+InfoFrame.Size = UDim2.new(1, -52, 1, 0)
+
+UsernameLabel.Name = "Username"
+UsernameLabel.Parent = InfoFrame
+UsernameLabel.BackgroundTransparency = 1
+UsernameLabel.Position = UDim2.new(0, 0, 0, 0)
+UsernameLabel.Size = UDim2.new(1, 0, 0, 18)
+UsernameLabel.Font = Enum.Font.GothamBold
+UsernameLabel.TextSize = 14
+UsernameLabel.TextScaled = true
+UsernameLabel.Text =
+    LocalPlayer
+    and LocalPlayer.Name
+    or "Player"
+
+UsernameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+UsernameLabel.TextXAlignment = Enum.TextXAlignment.Left
+UsernameLabel.TextWrapped = true
+
+TypeLabel.Name = "Type"
+TypeLabel.Parent = InfoFrame
+TypeLabel.BackgroundTransparency = 1
+TypeLabel.Position = UDim2.new(0, 0, 0, 18)
+TypeLabel.Size = UDim2.new(1, 0, 0, 12)
+TypeLabel.Font = Enum.Font.Gotham
+TypeLabel.TextSize = 12
+TypeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+TypeLabel.TextXAlignment = Enum.TextXAlignment.Left
+TypeLabel.TextWrapped = true
+
+ExpiryLabel.Name = "Expiry"
+ExpiryLabel.Parent = InfoFrame
+ExpiryLabel.BackgroundTransparency = 1
+ExpiryLabel.Position = UDim2.new(0, 0, 0, 33)
+ExpiryLabel.Size = UDim2.new(1, 0, 0, 30)
+ExpiryLabel.Font = Enum.Font.Gotham
+ExpiryLabel.TextSize = 12
+ExpiryLabel.Text = "Key expires: --"
+ExpiryLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+ExpiryLabel.TextXAlignment = Enum.TextXAlignment.Left
+ExpiryLabel.TextWrapped = true
+ExpiryLabel.TextYAlignment = Enum.TextYAlignment.Top
+
+local function IsPremium()
+    return shared.JD_IS_PREMIUM == true
+end
+
+local function GetExpiresAt()
+    return tonumber(shared.JD_EXPIRES_AT)
+end
+
+local function FormatDuration(sec)
+    if not sec or sec <= 0 then
+        return "Expired"
+    end
+
+    local days = math.floor(sec / 86400)
+    sec = sec - days * 86400
+
+    local hours = math.floor(sec / 3600)
+    sec = sec - hours * 3600
+
+    local mins = math.floor(sec / 60)
+    local secs = math.floor(sec - mins * 60)
+
+    if days > 0 then
+        return string.format("%dd %dh", days, hours)
+    elseif hours > 0 then
+        return string.format("%dh %dm", hours, mins)
+    elseif mins > 0 then
+        return string.format("%dm %ds", mins, secs)
+    else
+        return string.format("%ds", secs)
+    end
+end
+
+task.spawn(function()
+    while AccountInfo.Parent do
+        TypeLabel.Text =
+            "Type: "
+            .. (IsPremium() and "Premium" or "Standard")
+
+        local expires = GetExpiresAt()
+        local remaining
+
+        if type(expires) == "number" then
+            remaining = expires - os.time()
+        end
+
+        if remaining and remaining > 0 then
+            ExpiryLabel.Text =
+                "Key expires in: "
+                .. FormatDuration(remaining)
+        else
+            ExpiryLabel.Text = "Key expires in: --"
+        end
+
+        task.wait(1)
+    end
+end)
+
 	Window.HideButton = New("ImageButton", {
 		Visible = Library.Utilities:GetOS() == "Mobile",
 		Size = Config.Mobile.Size,
