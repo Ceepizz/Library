@@ -26,7 +26,7 @@ local TextService = game:GetService("TextService")
 local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
 
 local Library = {
-    Version = "RoyalPurple-5K-3.0.0",
+    Version = "RoyalPurple-5K-3.1.0",
     Theme = "Royal_Purple",
     Themes = {"Royal_Purple"},
     Options = {},
@@ -71,6 +71,7 @@ local Theme = {
     Text = Color3.fromRGB(240, 240, 240),
     SubText = Color3.fromRGB(170, 170, 170),
     Hover = Color3.fromRGB(100, 70, 150),
+    HoverChange = 0.06,
 
     White = Color3.fromRGB(255, 255, 255)
 }
@@ -1745,7 +1746,39 @@ function Library:Window(config)
     end
 
     function window:SelectTab(index)
-        return selectTab(index, false)
+        local ok, result = pcall(function()
+            return selectTab(index, false)
+        end)
+
+        if not ok then
+            warn("[RoyalPurple] SelectTab error:", result)
+
+            local fallback = tonumber(index)
+            local selected = fallback and self.Tabs[fallback]
+
+            if selected then
+                self.SelectedTab = fallback
+
+                for tabIndex, tab in ipairs(self.Tabs) do
+                    local active = tabIndex == fallback
+                    tab.Selected = active
+                    tab.Container.Visible = active
+                    tab.Button.BackgroundTransparency = active and 0.89 or 1
+                    tab.TitleLabel.TextColor3 = active and Theme.Text or Theme.SubText
+
+                    if tab.IconLabel then
+                        tab.IconLabel.ImageColor3 = active and Theme.Text or Theme.SubText
+                    end
+                end
+
+                tabDisplay.Text = selected.Name
+                return true
+            end
+
+            return false
+        end
+
+        return result
     end
 
     ----------------------------------------------------------------
@@ -4663,15 +4696,50 @@ function Library:Window(config)
         self.Tabs[index] = tab
         self.Containers[index] = container
 
-        -- The old 1.5k build could leave the header on the literal word
-        -- "Tab" after the sidebar appeared. Select the first tab only after
-        -- the object has been inserted into Window.Tabs, so selection can
-        -- never race the tab registration.
+        -- First tab must become usable before Window:Tab() returns.
+        -- Do the essential state directly instead of relying on selector
+        -- animation/layout code. This prevents a selector failure from
+        -- leaving the UI stuck on the literal heading "Tab".
         if self.TabCount == 1 then
-            selectTab(1, true)
+            self.SelectedTab = 1
+
+            tab.Selected = true
+            tab.Container.Visible = true
+            tab.Button.BackgroundTransparency = 0.89
+            tab.TitleLabel.TextColor3 = Theme.Text
+
+            if tab.IconLabel then
+                tab.IconLabel.ImageColor3 = Theme.Text
+            end
+
+            tabDisplay.Text = tab.Name
+            selector.Visible = true
+
+            local selectorOk, selectorErr = pcall(function()
+                updateSelector(1, true)
+            end)
+
+            if not selectorOk then
+                warn("[RoyalPurple] First-tab selector error:", selectorErr)
+            end
+
+            task.defer(function()
+                local selectOk, selectErr = pcall(function()
+                    selectTab(1, true)
+                end)
+
+                if not selectOk then
+                    warn("[RoyalPurple] Deferred first-tab select error:", selectErr)
+                end
+            end)
         end
 
-        filterTabs()
+        local filterOk, filterErr = pcall(filterTabs)
+
+        if not filterOk then
+            warn("[RoyalPurple] Tab filter error:", filterErr)
+        end
+
         return tab
     end
 
