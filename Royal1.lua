@@ -2093,86 +2093,20 @@ return function(Config)
 	})
 
 	--// ============================================================
-	--// STRONG NEON GRADIENT WINDOW GLOW
-	--// Pure UIStroke version so it does not depend on a glow image.
+	--// SINGLE-LAYER NEON GRADIENT WINDOW OUTLINE
+	--// One UIStroke only: bright enough to read as neon without
+	--// the stacked bloom rings from the previous version.
 	--// ============================================================
 
 	local RunService = game:GetService("RunService")
 
 	local NeonGradientColors = ColorSequence.new({
-		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(120, 35, 255)),
-		ColorSequenceKeypoint.new(0.18, Color3.fromRGB(208, 50, 255)),
-		ColorSequenceKeypoint.new(0.38, Color3.fromRGB(255, 70, 220)),
-		ColorSequenceKeypoint.new(0.58, Color3.fromRGB(185, 45, 255)),
-		ColorSequenceKeypoint.new(0.78, Color3.fromRGB(105, 65, 255)),
-		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(120, 35, 255)),
-	})
-
-	local NeonGradients = {}
-	local NeonPulseStrokes = {}
-
-	local function AddNeonGradient(Target, Rotation)
-		local Gradient = New("UIGradient", {
-			Color = NeonGradientColors,
-			Rotation = Rotation or 0,
-			Parent = Target,
-		})
-
-		table.insert(NeonGradients, Gradient)
-		return Gradient
-	end
-
-	local function CreateGlowRing(Name, Expand, Thickness, Transparency, CornerRadius)
-		local Ring = New("Frame", {
-			Name = Name,
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.new(1, Expand, 1, Expand),
-			BackgroundTransparency = 1,
-			BorderSizePixel = 0,
-			ClipsDescendants = false,
-		})
-
-		New("UICorner", {
-			CornerRadius = UDim.new(0, CornerRadius or 10),
-			Parent = Ring,
-		})
-
-		local Stroke = New("UIStroke", {
-			Name = Name .. "Stroke",
-			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-			LineJoinMode = Enum.LineJoinMode.Round,
-			Thickness = Thickness,
-			Transparency = Transparency,
-			Color = Color3.new(1, 1, 1),
-			Parent = Ring,
-		})
-
-		AddNeonGradient(Stroke)
-		table.insert(NeonPulseStrokes, {
-			Stroke = Stroke,
-			BaseTransparency = Transparency,
-		})
-
-		return Ring
-	end
-
-	-- Several overlapping translucent strokes create the bloom.
-	-- The closer rings are brighter, while the larger rings fade out.
-	Window.NeonGlow = New("Frame", {
-		Name = "NeonGlow",
-		AnchorPoint = Vector2.new(0, 0),
-		Position = UDim2.fromScale(0, 0),
-		Size = UDim2.fromScale(1, 1),
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		ClipsDescendants = false,
-	}, {
-		CreateGlowRing("GlowCoreBloom", 0, 12, 0.72, 9),
-		CreateGlowRing("GlowNear", 8, 14, 0.79, 12),
-		CreateGlowRing("GlowMid", 18, 18, 0.86, 16),
-		CreateGlowRing("GlowFar", 32, 22, 0.91, 22),
-		CreateGlowRing("GlowOuter", 48, 28, 0.95, 30),
+		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(115, 35, 255)),
+		ColorSequenceKeypoint.new(0.18, Color3.fromRGB(205, 48, 255)),
+		ColorSequenceKeypoint.new(0.38, Color3.fromRGB(255, 72, 220)),
+		ColorSequenceKeypoint.new(0.58, Color3.fromRGB(188, 45, 255)),
+		ColorSequenceKeypoint.new(0.78, Color3.fromRGB(100, 70, 255)),
+		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(115, 35, 255)),
 	})
 
 	Window.Root = New("Frame", {
@@ -2183,7 +2117,6 @@ return function(Config)
 		Parent = Config.Parent,
 		ClipsDescendants = false,
 	}, {
-		Window.NeonGlow,
 		Window.AcrylicPaint.Frame,
 		Window.TabDisplay,
 		Window.ContainerCanvas,
@@ -2191,24 +2124,27 @@ return function(Config)
 		ResizeStartFrame,
 	})
 
-	-- Sharp bright neon line directly on the actual window edge.
-	Window.NeonCoreStroke = New("UIStroke", {
-		Name = "NeonCoreStroke",
+	-- One single stroke does both jobs: visible outline + soft-ish neon edge.
+	-- The extra thickness gives the color enough presence without creating
+	-- multiple separate glow rings.
+	Window.NeonStroke = New("UIStroke", {
+		Name = "NeonStroke",
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		LineJoinMode = Enum.LineJoinMode.Round,
-		Thickness = 2.25,
-		Transparency = 0.03,
+		Thickness = 4.5,
+		Transparency = 0.14,
 		Color = Color3.new(1, 1, 1),
 		Parent = Window.AcrylicPaint.Frame,
 	})
 
-	AddNeonGradient(Window.NeonCoreStroke)
+	Window.NeonGradient = New("UIGradient", {
+		Color = NeonGradientColors,
+		Rotation = 0,
+		Parent = Window.NeonStroke,
+	})
 
-	-- A second softer line hugs the edge and makes the core look luminous.
-	Window.NeonEdgeGlow = CreateGlowRing("NeonEdgeGlow", 2, 7, 0.48, 10)
-	Window.NeonEdgeGlow.Parent = Window.Root
-
-	-- Slow gradient motion + very subtle breathing glow.
+	-- Animate the gradient slowly and breathe the transparency very slightly.
+	-- Still only ONE visible stroke layer.
 	local NeonRotation = 0
 	local NeonClock = 0
 
@@ -2220,23 +2156,13 @@ return function(Config)
 		NeonRotation = (NeonRotation + DeltaTime * 18) % 360
 		NeonClock += DeltaTime
 
-		for Index, Gradient in next, NeonGradients do
-			if Gradient and Gradient.Parent then
-				Gradient.Rotation = (NeonRotation + (Index - 1) * 14) % 360
-			end
+		if Window.NeonGradient and Window.NeonGradient.Parent then
+			Window.NeonGradient.Rotation = NeonRotation
 		end
 
-		local Breath = (math.sin(NeonClock * 2.1) + 1) * 0.5
-
-		for _, Data in next, NeonPulseStrokes do
-			local Stroke = Data.Stroke
-			if Stroke and Stroke.Parent then
-				Stroke.Transparency = math.clamp(
-					Data.BaseTransparency + Breath * 0.035,
-					0,
-					0.98
-				)
-			end
+		if Window.NeonStroke and Window.NeonStroke.Parent then
+			local Breath = (math.sin(NeonClock * 2.0) + 1) * 0.5
+			Window.NeonStroke.Transparency = 0.12 + Breath * 0.08
 		end
 	end)
 
