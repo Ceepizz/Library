@@ -2093,90 +2093,86 @@ return function(Config)
 	})
 
 	--// ============================================================
-	--// NEON GRADIENT WINDOW GLOW
+	--// STRONG NEON GRADIENT WINDOW GLOW
+	--// Pure UIStroke version so it does not depend on a glow image.
 	--// ============================================================
 
+	local RunService = game:GetService("RunService")
+
 	local NeonGradientColors = ColorSequence.new({
-		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(112, 24, 255)),
-		ColorSequenceKeypoint.new(0.18, Color3.fromRGB(196, 42, 255)),
-		ColorSequenceKeypoint.new(0.38, Color3.fromRGB(255, 55, 230)),
-		ColorSequenceKeypoint.new(0.58, Color3.fromRGB(150, 38, 255)),
-		ColorSequenceKeypoint.new(0.78, Color3.fromRGB(82, 72, 255)),
-		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(112, 24, 255)),
+		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(120, 35, 255)),
+		ColorSequenceKeypoint.new(0.18, Color3.fromRGB(208, 50, 255)),
+		ColorSequenceKeypoint.new(0.38, Color3.fromRGB(255, 70, 220)),
+		ColorSequenceKeypoint.new(0.58, Color3.fromRGB(185, 45, 255)),
+		ColorSequenceKeypoint.new(0.78, Color3.fromRGB(105, 65, 255)),
+		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(120, 35, 255)),
 	})
 
 	local NeonGradients = {}
+	local NeonPulseStrokes = {}
 
-	local function AddNeonGradient(Parent, Rotation)
+	local function AddNeonGradient(Target, Rotation)
 		local Gradient = New("UIGradient", {
 			Color = NeonGradientColors,
 			Rotation = Rotation or 0,
-			Parent = Parent,
+			Parent = Target,
 		})
 
 		table.insert(NeonGradients, Gradient)
 		return Gradient
 	end
 
-	local function CreateBloom(Name, Expand, Transparency)
-		local Bloom = New("ImageLabel", {
+	local function CreateGlowRing(Name, Expand, Thickness, Transparency, CornerRadius)
+		local Ring = New("Frame", {
 			Name = Name,
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
 			Size = UDim2.new(1, Expand, 1, Expand),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-
-			-- Same soft shadow family already used by the library.
-			Image = "rbxassetid://8992230677",
-			ScaleType = Enum.ScaleType.Slice,
-			SliceCenter = Rect.new(
-				Vector2.new(99, 99),
-				Vector2.new(99, 99)
-			),
-
-			ImageColor3 = Color3.new(1, 1, 1),
-			ImageTransparency = Transparency,
+			ClipsDescendants = false,
 		})
 
-		AddNeonGradient(Bloom)
-		return Bloom
+		New("UICorner", {
+			CornerRadius = UDim.new(0, CornerRadius or 10),
+			Parent = Ring,
+		})
+
+		local Stroke = New("UIStroke", {
+			Name = Name .. "Stroke",
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+			LineJoinMode = Enum.LineJoinMode.Round,
+			Thickness = Thickness,
+			Transparency = Transparency,
+			Color = Color3.new(1, 1, 1),
+			Parent = Ring,
+		})
+
+		AddNeonGradient(Stroke)
+		table.insert(NeonPulseStrokes, {
+			Stroke = Stroke,
+			BaseTransparency = Transparency,
+		})
+
+		return Ring
 	end
 
-	-- Soft bloom sits behind the actual acrylic window.
+	-- Several overlapping translucent strokes create the bloom.
+	-- The closer rings are brighter, while the larger rings fade out.
 	Window.NeonGlow = New("Frame", {
 		Name = "NeonGlow",
+		AnchorPoint = Vector2.new(0, 0),
+		Position = UDim2.fromScale(0, 0),
+		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
-		Size = UDim2.fromScale(1, 1),
+		ClipsDescendants = false,
 	}, {
-		CreateBloom("OuterBloom", 86, 0.58),
-		CreateBloom("MiddleBloom", 56, 0.40),
-		CreateBloom("InnerBloom", 32, 0.24),
-
-		-- Wide colored halo close to the edge.
-		New("Frame", {
-			Name = "NearGlow",
-			BackgroundTransparency = 1,
-			Size = UDim2.fromScale(1, 1),
-		}, {
-			New("UICorner", {
-				CornerRadius = UDim.new(0, 8),
-			}),
-
-			(function()
-				local Stroke = New("UIStroke", {
-					ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-					LineJoinMode = Enum.LineJoinMode.Round,
-					Thickness = 9,
-					Transparency = 0.68,
-					Color = Color3.new(1, 1, 1),
-				})
-
-				AddNeonGradient(Stroke)
-				return Stroke
-			end)(),
-		}),
+		CreateGlowRing("GlowCoreBloom", 0, 12, 0.72, 9),
+		CreateGlowRing("GlowNear", 8, 14, 0.79, 12),
+		CreateGlowRing("GlowMid", 18, 18, 0.86, 16),
+		CreateGlowRing("GlowFar", 32, 22, 0.91, 22),
+		CreateGlowRing("GlowOuter", 48, 28, 0.95, 30),
 	})
 
 	Window.Root = New("Frame", {
@@ -2185,8 +2181,8 @@ return function(Config)
 		Size = Window.Size,
 		Position = Window.Position,
 		Parent = Config.Parent,
+		ClipsDescendants = false,
 	}, {
-		-- Keep glow first so the acrylic window renders over the bloom.
 		Window.NeonGlow,
 		Window.AcrylicPaint.Frame,
 		Window.TabDisplay,
@@ -2195,44 +2191,51 @@ return function(Config)
 		ResizeStartFrame,
 	})
 
-	-- Bright neon edge rendered directly on the acrylic frame.
-	Window.NeonHaloStroke = New("UIStroke", {
-		Name = "NeonHaloStroke",
-		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-		LineJoinMode = Enum.LineJoinMode.Round,
-		Thickness = 6,
-		Transparency = 0.56,
-		Color = Color3.new(1, 1, 1),
-		Parent = Window.AcrylicPaint.Frame,
-	})
-
-	AddNeonGradient(Window.NeonHaloStroke)
-
+	-- Sharp bright neon line directly on the actual window edge.
 	Window.NeonCoreStroke = New("UIStroke", {
 		Name = "NeonCoreStroke",
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		LineJoinMode = Enum.LineJoinMode.Round,
-		Thickness = 2.5,
-		Transparency = 0,
+		Thickness = 2.25,
+		Transparency = 0.03,
 		Color = Color3.new(1, 1, 1),
 		Parent = Window.AcrylicPaint.Frame,
 	})
 
 	AddNeonGradient(Window.NeonCoreStroke)
 
-	-- Slow animated movement around the border.
-	local NeonRotation = 0
+	-- A second softer line hugs the edge and makes the core look luminous.
+	Window.NeonEdgeGlow = CreateGlowRing("NeonEdgeGlow", 2, 7, 0.48, 10)
+	Window.NeonEdgeGlow.Parent = Window.Root
 
-	Creator.AddSignal(game:GetService("RunService").RenderStepped, function(DeltaTime)
+	-- Slow gradient motion + very subtle breathing glow.
+	local NeonRotation = 0
+	local NeonClock = 0
+
+	Creator.AddSignal(RunService.RenderStepped, function(DeltaTime)
 		if not Window.Root or not Window.Root.Parent then
 			return
 		end
 
-		NeonRotation = (NeonRotation + DeltaTime * 22) % 360
+		NeonRotation = (NeonRotation + DeltaTime * 18) % 360
+		NeonClock += DeltaTime
 
-		for _, Gradient in next, NeonGradients do
+		for Index, Gradient in next, NeonGradients do
 			if Gradient and Gradient.Parent then
-				Gradient.Rotation = NeonRotation
+				Gradient.Rotation = (NeonRotation + (Index - 1) * 14) % 360
+			end
+		end
+
+		local Breath = (math.sin(NeonClock * 2.1) + 1) * 0.5
+
+		for _, Data in next, NeonPulseStrokes do
+			local Stroke = Data.Stroke
+			if Stroke and Stroke.Parent then
+				Stroke.Transparency = math.clamp(
+					Data.BaseTransparency + Breath * 0.035,
+					0,
+					0.98
+				)
 			end
 		end
 	end)
