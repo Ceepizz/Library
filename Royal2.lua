@@ -2093,36 +2093,17 @@ return function(Config)
 	})
 
 	--// ============================================================
-	--// BRIGHT PURPLE NEON + ONE SMOOTH CLOCKWISE SWEEP
-	--// The full outline stays neon-bright at all times.
-	--// A single LONG faded highlight travels around the perimeter.
-	--// No rotating UIGradient = no second/opposite glow.
-	--// No rounded moving frame = no tiny capsule effect.
+	--// ONE CURVED ROTATING NEON GLOW - NO STATIC OUTLINE
+	--// Only the animated purple comet is visible.
+	--// The trail follows the REAL rounded-rectangle perimeter,
+	--// including smooth quarter-circle corners.
 	--// ============================================================
 
 	local RunService = game:GetService("RunService")
 
-	local NEON_PURPLE = Color3.fromRGB(215, 0, 255)
-	local NEON_HALO_PURPLE = Color3.fromRGB(175, 0, 255)
-	local NEON_HOT_PURPLE = Color3.fromRGB(255, 70, 255)
-
-	local SweepColor = ColorSequence.new({
-		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(155, 0, 255)),
-		ColorSequenceKeypoint.new(0.48, Color3.fromRGB(205, 20, 255)),
-		ColorSequenceKeypoint.new(0.78, Color3.fromRGB(255, 120, 255)),
-		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(225, 35, 255)),
-	})
-
-	-- Long soft comet: invisible tail -> bright head -> soft fade.
-	local SweepTransparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0.00, 1.00),
-		NumberSequenceKeypoint.new(0.18, 0.92),
-		NumberSequenceKeypoint.new(0.48, 0.52),
-		NumberSequenceKeypoint.new(0.72, 0.08),
-		NumberSequenceKeypoint.new(0.84, 0.00),
-		NumberSequenceKeypoint.new(0.94, 0.38),
-		NumberSequenceKeypoint.new(1.00, 1.00),
-	})
+	local NEON_PURPLE = Color3.fromRGB(205, 0, 255)
+	local NEON_HOT = Color3.fromRGB(255, 105, 255)
+	local NEON_HEAD = Color3.fromRGB(255, 210, 255)
 
 	Window.Root = New("Frame", {
 		Active = true,
@@ -2142,176 +2123,227 @@ return function(Config)
 		ResizeStartFrame,
 	})
 
-	-- Soft purple halo behind the sharp neon line.
-	Window.NeonHaloStroke = New("UIStroke", {
-		Name = "NeonHaloStroke",
-		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-		LineJoinMode = Enum.LineJoinMode.Round,
-		Thickness = 4.8,
-		Transparency = 0.68,
-		Color = NEON_HALO_PURPLE,
-		Parent = Window.Root,
-	})
-
-	-- Main outline: always bright purple, all four sides, rounded corners.
-	Window.NeonStroke = New("UIStroke", {
-		Name = "NeonStroke",
-		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-		LineJoinMode = Enum.LineJoinMode.Round,
-		Thickness = 2.5,
-		Transparency = 0.00,
-		Color = NEON_PURPLE,
-		Parent = Window.Root,
-	})
-
-	local function MakeSweepEdge(Parent, Name, ZIndex)
+	local function MakeTrailPiece(Parent, Name, ZIndex)
 		local Halo = New("Frame", {
 			Name = Name .. "Halo",
-			BackgroundColor3 = NEON_HOT_PURPLE,
-			BackgroundTransparency = 0.58,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundColor3 = NEON_PURPLE,
+			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			Visible = false,
+			Visible = true,
 			ZIndex = ZIndex,
 			Parent = Parent,
-		})
-
-		local HaloGradient = New("UIGradient", {
-			Color = SweepColor,
-			Transparency = SweepTransparency,
-			Rotation = 0,
-			Parent = Halo,
+		}, {
+			New("UICorner", {
+				CornerRadius = UDim.new(1, 0),
+			}),
 		})
 
 		local Core = New("Frame", {
 			Name = Name .. "Core",
-			BackgroundColor3 = NEON_HOT_PURPLE,
-			BackgroundTransparency = 0.03,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundColor3 = NEON_HOT,
+			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			Visible = false,
+			Visible = true,
 			ZIndex = ZIndex + 1,
 			Parent = Parent,
-		})
-
-		local CoreGradient = New("UIGradient", {
-			Color = SweepColor,
-			Transparency = SweepTransparency,
-			Rotation = 0,
-			Parent = Core,
+		}, {
+			New("UICorner", {
+				CornerRadius = UDim.new(1, 0),
+			}),
 		})
 
 		return {
 			Halo = Halo,
-			HaloGradient = HaloGradient,
 			Core = Core,
-			CoreGradient = CoreGradient,
 		}
 	end
 
-	local function CreateNeonSweep(Parent, ConfigData)
+	-- Returns an exact point + tangent angle on a rounded rectangle.
+	-- Distance starts on the top edge and moves clockwise.
+	local function RoundedRectPoint(W, H, Radius, Inset, Distance)
+		local Left = Inset
+		local Top = Inset
+		local Right = W - Inset
+		local Bottom = H - Inset
+
+		local InnerW = math.max(2, Right - Left)
+		local InnerH = math.max(2, Bottom - Top)
+		local R = math.clamp(
+			Radius - Inset,
+			1,
+			math.max(1, math.min(InnerW, InnerH) * 0.5)
+		)
+
+		local Horizontal = math.max(0, InnerW - 2 * R)
+		local Vertical = math.max(0, InnerH - 2 * R)
+		local Arc = math.pi * R * 0.5
+		local Perimeter = (2 * Horizontal) + (2 * Vertical) + (4 * Arc)
+
+		local D = Distance % Perimeter
+
+		-- TOP: left -> right
+		if D < Horizontal then
+			return Left + R + D, Top, 0, Perimeter
+		end
+		D -= Horizontal
+
+		-- TOP-RIGHT CORNER: -90 -> 0 degrees
+		if D < Arc then
+			local Theta = (-math.pi * 0.5) + (D / R)
+			local CX, CY = Right - R, Top + R
+			return CX + math.cos(Theta) * R,
+				CY + math.sin(Theta) * R,
+				math.deg(Theta + math.pi * 0.5),
+				Perimeter
+		end
+		D -= Arc
+
+		-- RIGHT: top -> bottom
+		if D < Vertical then
+			return Right, Top + R + D, 90, Perimeter
+		end
+		D -= Vertical
+
+		-- BOTTOM-RIGHT CORNER: 0 -> 90 degrees
+		if D < Arc then
+			local Theta = D / R
+			local CX, CY = Right - R, Bottom - R
+			return CX + math.cos(Theta) * R,
+				CY + math.sin(Theta) * R,
+				math.deg(Theta + math.pi * 0.5),
+				Perimeter
+		end
+		D -= Arc
+
+		-- BOTTOM: right -> left
+		if D < Horizontal then
+			return Right - R - D, Bottom, 180, Perimeter
+		end
+		D -= Horizontal
+
+		-- BOTTOM-LEFT CORNER: 90 -> 180 degrees
+		if D < Arc then
+			local Theta = (math.pi * 0.5) + (D / R)
+			local CX, CY = Left + R, Bottom - R
+			return CX + math.cos(Theta) * R,
+				CY + math.sin(Theta) * R,
+				math.deg(Theta + math.pi * 0.5),
+				Perimeter
+		end
+		D -= Arc
+
+		-- LEFT: bottom -> top
+		if D < Vertical then
+			return Left, Bottom - R - D, 270, Perimeter
+		end
+		D -= Vertical
+
+		-- TOP-LEFT CORNER: 180 -> 270 degrees
+		local Theta = math.pi + (D / R)
+		local CX, CY = Left + R, Top + R
+		return CX + math.cos(Theta) * R,
+			CY + math.sin(Theta) * R,
+			math.deg(Theta + math.pi * 0.5),
+			Perimeter
+	end
+
+	local function CreateCurvedNeonSweep(Parent, ConfigData)
 		local Sweep = {
 			Parent = Parent,
+			Radius = ConfigData.Radius,
+			Inset = ConfigData.Inset,
+			TrailLength = ConfigData.TrailLength,
+			SegmentLength = ConfigData.SegmentLength,
 			CoreThickness = ConfigData.CoreThickness,
 			HaloThickness = ConfigData.HaloThickness,
-			MinLength = ConfigData.MinLength,
-			MaxLength = ConfigData.MaxLength,
-			Top = MakeSweepEdge(Parent, "NeonSweepTop", ConfigData.ZIndex),
-			Right = MakeSweepEdge(Parent, "NeonSweepRight", ConfigData.ZIndex),
-			Bottom = MakeSweepEdge(Parent, "NeonSweepBottom", ConfigData.ZIndex),
-			Left = MakeSweepEdge(Parent, "NeonSweepLeft", ConfigData.ZIndex),
+			Segments = {},
 		}
 
-		-- Gradient direction follows the clockwise travel direction.
-		Sweep.Top.HaloGradient.Rotation = 0
-		Sweep.Top.CoreGradient.Rotation = 0
-		Sweep.Right.HaloGradient.Rotation = 90
-		Sweep.Right.CoreGradient.Rotation = 90
-		Sweep.Bottom.HaloGradient.Rotation = 180
-		Sweep.Bottom.CoreGradient.Rotation = 180
-		Sweep.Left.HaloGradient.Rotation = 270
-		Sweep.Left.CoreGradient.Rotation = 270
+		for Index = 1, ConfigData.SegmentCount do
+			Sweep.Segments[Index] = MakeTrailPiece(
+				Parent,
+				"CurvedNeonTrail" .. tostring(Index),
+				ConfigData.ZIndex
+			)
+		end
 
 		return Sweep
 	end
 
-	local function HideSweep(Sweep)
-		for _, Edge in next, { Sweep.Top, Sweep.Right, Sweep.Bottom, Sweep.Left } do
-			Edge.Halo.Visible = false
-			Edge.Core.Visible = false
-		end
-	end
-
-	local function ShowHorizontal(Edge, X, Y, Length, Sweep)
-		Edge.Halo.Size = UDim2.fromOffset(Length, Sweep.HaloThickness)
-		Edge.Halo.AnchorPoint = Vector2.new(0.5, 0.5)
-		Edge.Halo.Position = UDim2.fromOffset(X, Y)
-		Edge.Halo.Visible = true
-
-		Edge.Core.Size = UDim2.fromOffset(Length, Sweep.CoreThickness)
-		Edge.Core.AnchorPoint = Vector2.new(0.5, 0.5)
-		Edge.Core.Position = UDim2.fromOffset(X, Y)
-		Edge.Core.Visible = true
-	end
-
-	local function ShowVertical(Edge, X, Y, Length, Sweep)
-		Edge.Halo.Size = UDim2.fromOffset(Sweep.HaloThickness, Length)
-		Edge.Halo.AnchorPoint = Vector2.new(0.5, 0.5)
-		Edge.Halo.Position = UDim2.fromOffset(X, Y)
-		Edge.Halo.Visible = true
-
-		Edge.Core.Size = UDim2.fromOffset(Sweep.CoreThickness, Length)
-		Edge.Core.AnchorPoint = Vector2.new(0.5, 0.5)
-		Edge.Core.Position = UDim2.fromOffset(X, Y)
-		Edge.Core.Visible = true
-	end
-
-	local function UpdateNeonSweep(Sweep, Phase)
+	local function UpdateCurvedNeonSweep(Sweep, Phase)
 		if not Sweep or not Sweep.Parent or not Sweep.Parent.Parent then
 			return
 		end
 
 		local Size = Sweep.Parent.AbsoluteSize
 		local W, H = Size.X, Size.Y
-		if W < 4 or H < 4 then
+		if W < 8 or H < 8 then
 			return
 		end
 
-		HideSweep(Sweep)
+		local _, _, _, Perimeter = RoundedRectPoint(
+			W,
+			H,
+			Sweep.Radius,
+			Sweep.Inset,
+			0
+		)
 
-		local Perimeter = 2 * (W + H)
-		local Distance = (Phase % 1) * Perimeter
-		local Length = math.clamp(math.min(W, H) * 0.32, Sweep.MinLength, Sweep.MaxLength)
+		local HeadDistance = (Phase % 1) * Perimeter
+		local Count = #Sweep.Segments
 
-		-- Keep the moving light inside the clipping rectangle while the
-		-- permanent UIStroke supplies the perfectly rounded outer corners.
-		local CoreInset = math.max(Sweep.CoreThickness, Sweep.HaloThickness) * 0.5
+		for Index, Piece in ipairs(Sweep.Segments) do
+			-- 0 = bright head, 1 = end of tail.
+			local TailT = (Index - 1) / math.max(1, Count - 1)
+			local Distance = HeadDistance - (TailT * Sweep.TrailLength)
+			local X, Y, Angle = RoundedRectPoint(
+				W,
+				H,
+				Sweep.Radius,
+				Sweep.Inset,
+				Distance
+			)
 
-		if Distance < W then
-			-- TOP: left -> right
-			ShowHorizontal(Sweep.Top, Distance, CoreInset, Length, Sweep)
-		elseif Distance < W + H then
-			-- RIGHT: top -> bottom
-			ShowVertical(Sweep.Right, W - CoreInset, Distance - W, Length, Sweep)
-		elseif Distance < (2 * W) + H then
-			-- BOTTOM: right -> left
-			local D = Distance - (W + H)
-			ShowHorizontal(Sweep.Bottom, W - D, H - CoreInset, Length, Sweep)
-		else
-			-- LEFT: bottom -> top
-			local D = Distance - ((2 * W) + H)
-			ShowVertical(Sweep.Left, CoreInset, H - D, Length, Sweep)
+			-- Lots of overlapping short pieces make one continuous curved streak.
+			local Length = Sweep.SegmentLength * (1 - (TailT * 0.28))
+			local Fade = TailT ^ 1.45
+
+			Piece.Halo.Position = UDim2.fromOffset(X, Y)
+			Piece.Halo.Size = UDim2.fromOffset(Length + 3, Sweep.HaloThickness)
+			Piece.Halo.Rotation = Angle
+			Piece.Halo.BackgroundTransparency = math.clamp(0.48 + (Fade * 0.51), 0, 0.995)
+			Piece.Halo.BackgroundColor3 = NEON_PURPLE:Lerp(NEON_HOT, 1 - TailT)
+
+			Piece.Core.Position = UDim2.fromOffset(X, Y)
+			Piece.Core.Size = UDim2.fromOffset(Length, Sweep.CoreThickness)
+			Piece.Core.Rotation = Angle
+			Piece.Core.BackgroundTransparency = math.clamp(0.01 + (Fade * 0.98), 0, 0.995)
+
+			-- Bright pink-white head, then quickly settles into electric purple.
+			if TailT < 0.12 then
+				local HeadBlend = TailT / 0.12
+				Piece.Core.BackgroundColor3 = NEON_HEAD:Lerp(NEON_HOT, HeadBlend)
+			else
+				local PurpleBlend = math.clamp((TailT - 0.12) / 0.55, 0, 1)
+				Piece.Core.BackgroundColor3 = NEON_HOT:Lerp(NEON_PURPLE, PurpleBlend)
+			end
 		end
 	end
 
-	Window.MainNeonSweep = CreateNeonSweep(Window.Root, {
-		CoreThickness = 3.4,
+	Window.MainNeonSweep = CreateCurvedNeonSweep(Window.Root, {
+		Radius = 12,
+		Inset = 4.0,
+		TrailLength = 145,
+		SegmentLength = 10.5,
+		CoreThickness = 3.2,
 		HaloThickness = 7.0,
-		MinLength = 82,
-		MaxLength = 135,
+		SegmentCount = 44,
 		ZIndex = 1000,
 	})
 
-	-- One full lap every ~7.5 seconds. This is a real perimeter sweep,
-	-- not a rotating linear gradient, so there is only ONE bright region.
+	-- Clockwise forever. One lap every 7.5 seconds.
 	local NeonSweepPhase = 0
 	local NeonSweepSecondsPerLap = 7.5
 
@@ -2321,10 +2353,10 @@ return function(Config)
 		end
 
 		NeonSweepPhase = (NeonSweepPhase + (DeltaTime / NeonSweepSecondsPerLap)) % 1
-		UpdateNeonSweep(Window.MainNeonSweep, NeonSweepPhase)
+		UpdateCurvedNeonSweep(Window.MainNeonSweep, NeonSweepPhase)
 
 		if Window.FloatingNeonSweep then
-			UpdateNeonSweep(Window.FloatingNeonSweep, NeonSweepPhase)
+			UpdateCurvedNeonSweep(Window.FloatingNeonSweep, NeonSweepPhase)
 		end
 	end)
 
@@ -2531,33 +2563,16 @@ end)
 		FloatingLogoImage,
 	})
 
-	--// FLOATING ICON: same bright purple outline + same ONE smooth sweep.
-	--// Rounded base border stays visible; the moving highlight is long and faded.
-	Window.FloatingNeonHaloStroke = New("UIStroke", {
-		Name = "FloatingNeonHaloStroke",
-		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-		LineJoinMode = Enum.LineJoinMode.Round,
-		Thickness = 4.4,
-		Transparency = 0.68,
-		Color = NEON_HALO_PURPLE,
-		Parent = FloatingLogoBackground,
-	})
-
-	Window.FloatingNeonStroke = New("UIStroke", {
-		Name = "FloatingNeonStroke",
-		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-		LineJoinMode = Enum.LineJoinMode.Round,
-		Thickness = 2.4,
-		Transparency = 0.00,
-		Color = NEON_PURPLE,
-		Parent = FloatingLogoBackground,
-	})
-
-	Window.FloatingNeonSweep = CreateNeonSweep(FloatingLogoBackground, {
-		CoreThickness = 3.0,
+	--// FLOATING ICON: ONLY the same curved rotating glow.
+	--// No permanent neon outline behind it.
+	Window.FloatingNeonSweep = CreateCurvedNeonSweep(FloatingLogoBackground, {
+		Radius = 10,
+		Inset = 3.0,
+		TrailLength = 48,
+		SegmentLength = 7.5,
+		CoreThickness = 2.8,
 		HaloThickness = 5.6,
-		MinLength = 18,
-		MaxLength = 28,
+		SegmentCount = 24,
 		ZIndex = 203,
 	})
 
