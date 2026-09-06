@@ -2093,35 +2093,27 @@ return function(Config)
 	})
 
 	--// ============================================================
-	--// SINGLE-LAYER TRAVELING NEON BORDER
-	--// One UIStroke + one UIGradient. A narrow bright "hot spot"
-	--// rotates around the border to create a clockwise neon sweep.
+	--// SINGLE-LAYER SLOW BREATHING NEON BORDER
+	--// No rotation. The gradient stays in place while the stroke
+	--// slowly grows brighter/thicker, then relaxes back down.
 	--// ============================================================
 
-	local RunService = game:GetService("RunService")
+	local TweenService = game:GetService("TweenService")
 
-	-- Most of the border stays purple while this narrow pink/white
-	-- section becomes the moving glow highlight.
 	local NeonGradientColors = ColorSequence.new({
-		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(92, 24, 190)),
-		ColorSequenceKeypoint.new(0.34, Color3.fromRGB(118, 30, 230)),
-		ColorSequenceKeypoint.new(0.43, Color3.fromRGB(210, 48, 255)),
-		ColorSequenceKeypoint.new(0.50, Color3.fromRGB(255, 205, 255)),
-		ColorSequenceKeypoint.new(0.57, Color3.fromRGB(255, 68, 226)),
-		ColorSequenceKeypoint.new(0.66, Color3.fromRGB(125, 35, 235)),
-		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(92, 24, 190)),
+		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(94, 24, 190)),
+		ColorSequenceKeypoint.new(0.25, Color3.fromRGB(150, 42, 245)),
+		ColorSequenceKeypoint.new(0.50, Color3.fromRGB(255, 120, 245)),
+		ColorSequenceKeypoint.new(0.75, Color3.fromRGB(165, 54, 255)),
+		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(94, 24, 190)),
 	})
 
-	-- Dim the normal border slightly and let the moving center glow
-	-- become much brighter. This is still only a SINGLE stroke layer.
 	local NeonGradientTransparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0.00, 0.28),
-		NumberSequenceKeypoint.new(0.34, 0.24),
-		NumberSequenceKeypoint.new(0.43, 0.08),
+		NumberSequenceKeypoint.new(0.00, 0.12),
+		NumberSequenceKeypoint.new(0.25, 0.04),
 		NumberSequenceKeypoint.new(0.50, 0.00),
-		NumberSequenceKeypoint.new(0.57, 0.08),
-		NumberSequenceKeypoint.new(0.66, 0.24),
-		NumberSequenceKeypoint.new(1.00, 0.28),
+		NumberSequenceKeypoint.new(0.75, 0.04),
+		NumberSequenceKeypoint.new(1.00, 0.12),
 	})
 
 	Window.Root = New("Frame", {
@@ -2146,8 +2138,8 @@ return function(Config)
 		Name = "NeonStroke",
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		LineJoinMode = Enum.LineJoinMode.Round,
-		Thickness = 4.5,
-		Transparency = 0.05,
+		Thickness = 3.6,
+		Transparency = 0.18,
 		Color = Color3.new(1, 1, 1),
 		Parent = Window.Root,
 	})
@@ -2159,27 +2151,26 @@ return function(Config)
 		Parent = Window.NeonStroke,
 	})
 
-	-- Clockwise traveling glow. 60 degrees/second = one full sweep
-	-- every 6 seconds. Increase this number for a faster rotation.
-	local NeonRotation = 0
-	local NeonDegreesPerSecond = 60
+	-- Slow-motion glow pulse. One direction takes 1.8 seconds,
+	-- then it automatically reverses for the zoom-out phase.
+	local NeonPulseInfo = TweenInfo.new(
+		1.8,
+		Enum.EasingStyle.Sine,
+		Enum.EasingDirection.InOut,
+		-1,
+		true
+	)
 
-	Creator.AddSignal(RunService.RenderStepped, function(DeltaTime)
-		if not Window.Root or not Window.Root.Parent then
-			return
-		end
+	Window.NeonPulseTween = TweenService:Create(
+		Window.NeonStroke,
+		NeonPulseInfo,
+		{
+			Thickness = 5.2,
+			Transparency = 0.015,
+		}
+	)
 
-		NeonRotation = (NeonRotation + DeltaTime * NeonDegreesPerSecond) % 360
-
-		if Window.NeonGradient and Window.NeonGradient.Parent then
-			Window.NeonGradient.Rotation = NeonRotation
-		end
-
-		-- Keep the floating icon glow perfectly synced with the main window.
-		if Window.FloatingNeonGradient and Window.FloatingNeonGradient.Parent then
-			Window.FloatingNeonGradient.Rotation = NeonRotation
-		end
-	end)
+	Window.NeonPulseTween:Play()
 
 local AccountInfo = Instance.new("Frame")
 local AvatarFrame = Instance.new("Frame")
@@ -2384,15 +2375,14 @@ end)
 		FloatingLogoImage,
 	})
 
-	--// FLOATING ICON TRAVELING NEON BORDER
-	--// Uses the exact same single-stroke gradient as the main window
-	--// and shares its rotation so both sweeps stay synchronized.
+	--// FLOATING ICON SLOW BREATHING NEON BORDER
+	--// Same slow pulse timing as the main window.
 	Window.FloatingNeonStroke = New("UIStroke", {
 		Name = "FloatingNeonStroke",
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		LineJoinMode = Enum.LineJoinMode.Round,
-		Thickness = 3.5,
-		Transparency = 0.03,
+		Thickness = 2.8,
+		Transparency = 0.16,
 		Color = Color3.new(1, 1, 1),
 		Parent = FloatingLogoBackground,
 	})
@@ -2400,9 +2390,20 @@ end)
 	Window.FloatingNeonGradient = New("UIGradient", {
 		Color = NeonGradientColors,
 		Transparency = NeonGradientTransparency,
-		Rotation = NeonRotation,
+		Rotation = 0,
 		Parent = Window.FloatingNeonStroke,
 	})
+
+	Window.FloatingNeonPulseTween = TweenService:Create(
+		Window.FloatingNeonStroke,
+		NeonPulseInfo,
+		{
+			Thickness = 4.4,
+			Transparency = 0.01,
+		}
+	)
+
+	Window.FloatingNeonPulseTween:Play()
 
 	Window.CloseUIShadow = New("ImageButton", {
 		Name = "CloseUIShadow",
