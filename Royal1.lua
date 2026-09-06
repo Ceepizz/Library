@@ -2093,25 +2093,26 @@ return function(Config)
 	})
 
 	--// ============================================================
-	--// FULL-PERIMETER SLOW BREATHING NEON BORDER
-	--// Inhale  = thicker + brighter + larger-looking glow.
-	--// Exhale  = thinner + dimmer + tighter-looking glow.
-	--// The color gradient stays visible around the ENTIRE stroke;
-	--// there is no gradient transparency fading the side edges.
+	--// SOFT BREATHING NEON BORDER
+	--// The old version made the UIStroke itself huge, which looks
+	--// like a thick solid purple ring instead of real bloom.
+	--//
+	--// This version keeps a thin crisp stroke around ALL 4 sides,
+	--// then breathes a soft 9-slice glow image behind the window.
+	--// Inhale = halo expands + brightens.
+	--// Exhale = halo contracts + fades.
 	--// ============================================================
 
 	local TweenService = game:GetService("TweenService")
 
 	local NeonGradientColors = ColorSequence.new({
-		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(105, 35, 220)),
-		ColorSequenceKeypoint.new(0.22, Color3.fromRGB(175, 55, 255)),
-		ColorSequenceKeypoint.new(0.50, Color3.fromRGB(255, 125, 245)),
-		ColorSequenceKeypoint.new(0.78, Color3.fromRGB(180, 65, 255)),
-		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(105, 35, 220)),
+		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(118, 38, 235)),
+		ColorSequenceKeypoint.new(0.28, Color3.fromRGB(176, 55, 255)),
+		ColorSequenceKeypoint.new(0.52, Color3.fromRGB(236, 92, 255)),
+		ColorSequenceKeypoint.new(0.76, Color3.fromRGB(173, 57, 255)),
+		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(118, 38, 235)),
 	})
 
-	-- Keep transparency UNIFORM across the whole gradient so the
-	-- left/right edges glow just as much as the top/bottom edges.
 	local NeonGradientTransparency = NumberSequence.new(0)
 
 	Window.Root = New("Frame", {
@@ -2120,6 +2121,7 @@ return function(Config)
 		Size = Window.Size,
 		Position = Window.Position,
 		Parent = Config.Parent,
+		ZIndex = 2,
 		ClipsDescendants = true,
 	}, {
 		New("UICorner", {
@@ -2132,12 +2134,13 @@ return function(Config)
 		ResizeStartFrame,
 	})
 
+	-- Thin core line: never becomes a giant solid border.
 	Window.NeonStroke = New("UIStroke", {
 		Name = "NeonStroke",
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		LineJoinMode = Enum.LineJoinMode.Round,
-		Thickness = 2.4,       -- exhale size
-		Transparency = 0.34,   -- exhale glow
+		Thickness = 1.8,
+		Transparency = 0.08,
 		Color = Color3.new(1, 1, 1),
 		Parent = Window.Root,
 	})
@@ -2149,27 +2152,67 @@ return function(Config)
 		Parent = Window.NeonStroke,
 	})
 
-	-- Slow breathing: 2.4s inhale, then 2.4s exhale.
-	-- Thickness creates the visible zoom/expansion while transparency
-	-- controls how strong the glow feels.
+	-- Soft bloom layer. This asset is already used by Fluent for
+	-- shadows, but tinted purple it behaves like a proper neon halo.
+	Window.MainNeonGlow = New("ImageLabel", {
+		Name = "MainNeonGlow",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://1316045217",
+		ImageColor3 = Color3.fromRGB(170, 48, 255),
+		ImageTransparency = 0.58,
+		ZIndex = 1,
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(10, 10, 118, 118),
+		Size = UDim2.fromOffset(Window.Size.X.Offset + 24, Window.Size.Y.Offset + 24),
+		Position = UDim2.fromOffset(
+			Window.Position.X.Offset + Window.Size.X.Offset / 2,
+			Window.Position.Y.Offset + Window.Size.Y.Offset / 2
+		),
+		Parent = Config.Parent,
+	})
+
+	Window.MainNeonGlowScale = New("UIScale", {
+		Scale = 1.0,
+		Parent = Window.MainNeonGlow,
+	})
+
+	New("UIGradient", {
+		Color = NeonGradientColors,
+		Transparency = NumberSequence.new(0),
+		Rotation = 0,
+		Parent = Window.MainNeonGlow,
+	})
+
 	local NeonPulseInfo = TweenInfo.new(
-		2.4,
+		2.8,
 		Enum.EasingStyle.Sine,
 		Enum.EasingDirection.InOut,
 		-1,
 		true
 	)
 
-	Window.NeonPulseTween = TweenService:Create(
-		Window.NeonStroke,
+	Window.MainNeonGlowScaleTween = TweenService:Create(
+		Window.MainNeonGlowScale,
 		NeonPulseInfo,
-		{
-			Thickness = 7.0,      -- inhale: glow expands
-			Transparency = 0.015, -- inhale: glow gets bright
-		}
+		{ Scale = 1.045 }
 	)
 
-	Window.NeonPulseTween:Play()
+	Window.MainNeonGlowFadeTween = TweenService:Create(
+		Window.MainNeonGlow,
+		NeonPulseInfo,
+		{ ImageTransparency = 0.20 }
+	)
+
+	Window.NeonStrokePulseTween = TweenService:Create(
+		Window.NeonStroke,
+		NeonPulseInfo,
+		{ Transparency = 0.0, Thickness = 2.15 }
+	)
+
+	Window.MainNeonGlowScaleTween:Play()
+	Window.MainNeonGlowFadeTween:Play()
+	Window.NeonStrokePulseTween:Play()
 
 local AccountInfo = Instance.new("Frame")
 local AvatarFrame = Instance.new("Frame")
@@ -2374,14 +2417,15 @@ end)
 		FloatingLogoImage,
 	})
 
-	--// FLOATING ICON FULL-PERIMETER BREATHING NEON BORDER
-	--// Same inhale/exhale rhythm as the main window.
+	--// FLOATING ICON SOFT BREATHING NEON
+	--// Same idea as the main window: a crisp 4-sided core stroke
+	--// plus a soft halo that actually expands/contracts.
 	Window.FloatingNeonStroke = New("UIStroke", {
 		Name = "FloatingNeonStroke",
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		LineJoinMode = Enum.LineJoinMode.Round,
-		Thickness = 2.0,       -- exhale size
-		Transparency = 0.34,   -- exhale glow
+		Thickness = 1.8,
+		Transparency = 0.06,
 		Color = Color3.new(1, 1, 1),
 		Parent = FloatingLogoBackground,
 	})
@@ -2393,16 +2437,54 @@ end)
 		Parent = Window.FloatingNeonStroke,
 	})
 
-	Window.FloatingNeonPulseTween = TweenService:Create(
-		Window.FloatingNeonStroke,
+	Window.FloatingNeonGlow = New("ImageLabel", {
+		Name = "FloatingNeonGlow",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundTransparency = 1,
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, 24, 1, 24),
+		Image = "rbxassetid://1316045217",
+		ImageColor3 = Color3.fromRGB(170, 48, 255),
+		ImageTransparency = 0.55,
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(10, 10, 118, 118),
+		ZIndex = 200,
+		Parent = FloatingLogoBackground,
+	})
+
+	Window.FloatingNeonGlowScale = New("UIScale", {
+		Scale = 1.0,
+		Parent = Window.FloatingNeonGlow,
+	})
+
+	New("UIGradient", {
+		Color = NeonGradientColors,
+		Transparency = NumberSequence.new(0),
+		Rotation = 0,
+		Parent = Window.FloatingNeonGlow,
+	})
+
+	Window.FloatingNeonGlowScaleTween = TweenService:Create(
+		Window.FloatingNeonGlowScale,
 		NeonPulseInfo,
-		{
-			Thickness = 6.0,      -- inhale: icon glow expands
-			Transparency = 0.01,  -- inhale: icon glow gets bright
-		}
+		{ Scale = 1.11 }
 	)
 
-	Window.FloatingNeonPulseTween:Play()
+	Window.FloatingNeonGlowFadeTween = TweenService:Create(
+		Window.FloatingNeonGlow,
+		NeonPulseInfo,
+		{ ImageTransparency = 0.16 }
+	)
+
+	Window.FloatingNeonStrokePulseTween = TweenService:Create(
+		Window.FloatingNeonStroke,
+		NeonPulseInfo,
+		{ Transparency = 0.0, Thickness = 2.15 }
+	)
+
+	Window.FloatingNeonGlowScaleTween:Play()
+	Window.FloatingNeonGlowFadeTween:Play()
+	Window.FloatingNeonStrokePulseTween:Play()
 
 	Window.CloseUIShadow = New("ImageButton", {
 		Name = "CloseUIShadow",
@@ -2450,12 +2532,33 @@ end)
 	Window.ContainerBackMotor = Flipper.SingleMotor.new(0)
 	Window.ContainerPosMotor = Flipper.SingleMotor.new(94)
 
+	local function SyncMainNeonGlow()
+		if not Window.MainNeonGlow or not Window.MainNeonGlow.Parent then
+			return
+		end
+
+		local rootSize = Window.Root.Size
+		local rootPos = Window.Root.Position
+
+		Window.MainNeonGlow.Size = UDim2.fromOffset(
+			rootSize.X.Offset + 24,
+			rootSize.Y.Offset + 24
+		)
+
+		Window.MainNeonGlow.Position = UDim2.fromOffset(
+			rootPos.X.Offset + rootSize.X.Offset / 2,
+			rootPos.Y.Offset + rootSize.Y.Offset / 2
+		)
+	end
+
 	SizeMotor:onStep(function(values)
 		Window.Root.Size = UDim2.new(0, values.X, 0, values.Y)
+		SyncMainNeonGlow()
 	end)
 
 	PosMotor:onStep(function(values)
 		Window.Root.Position = UDim2.new(0, values.X, 0, values.Y)
+		SyncMainNeonGlow()
 	end)
 
 	local SelectorInset = Layout.SelectorInset
@@ -2624,6 +2727,9 @@ end)
 	function Window:Minimize()
 		Window.Minimized = not Window.Minimized
 		Window.Root.Visible = not Window.Minimized
+		if Window.MainNeonGlow then
+			Window.MainNeonGlow.Visible = not Window.Minimized
+		end
 
 		if Window.CloseUIShadow then
 			Window.CloseUIShadow.Visible = Window.Minimized
@@ -2779,6 +2885,7 @@ end)
 		Creator.AddSignal(Window.HideButton.TouchTap, function()
 			Window.Minimized = not Window.Minimized
        			Window.Root.Visible = not Window.Minimized
+			if Window.MainNeonGlow then Window.MainNeonGlow.Visible = not Window.Minimized end
 			local Icon = Config.Mobile.GetIcon(Window.Minimized)
 			Window.HideButton.Image = Icon.Image
 			Window.HideButton.ImageRectOffset = Icon.ImageRectOffset
@@ -2788,10 +2895,15 @@ end)
 		Creator.AddSignal(Window.HideButton.MouseButton1Click, function()
 			Window.Minimized = not Window.Minimized
        			Window.Root.Visible = not Window.Minimized
+			if Window.MainNeonGlow then Window.MainNeonGlow.Visible = not Window.Minimized end
 		end)
 	end
 
 	function Window:Destroy()
+		if Window.MainNeonGlow then
+			Window.MainNeonGlow:Destroy()
+		end
+
 		if Window.CloseUIShadow then
 			Window.CloseUIShadow:Destroy()
 		end
