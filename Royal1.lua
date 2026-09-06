@@ -2115,7 +2115,8 @@ return function(Config)
 		Size = Window.Size,
 		Position = Window.Position,
 		Parent = Config.Parent,
-		ClipsDescendants = false,
+		-- Keep Fluent's acrylic/background pieces inside the window.
+		ClipsDescendants = true,
 	}, {
 		Window.AcrylicPaint.Frame,
 		Window.TabDisplay,
@@ -2134,7 +2135,9 @@ return function(Config)
 		Thickness = 4.5,
 		Transparency = 0.14,
 		Color = Color3.new(1, 1, 1),
-		Parent = Window.AcrylicPaint.Frame,
+		-- Attach to the outer window, not the Acrylic frame, so the
+		-- acrylic can stay clipped while the border remains clean.
+		Parent = Window.Root,
 	})
 
 	Window.NeonGradient = New("UIGradient", {
