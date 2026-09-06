@@ -2093,27 +2093,35 @@ return function(Config)
 	})
 
 	--// ============================================================
-	--// SINGLE ROTATING NEON GLOW
-	--// The border itself stays neon purple. Instead of rotating a
-	--// linear UIGradient (which creates TWO opposite hot spots), one
-	--// small neon highlight physically travels around the perimeter.
-	--// Result: exactly ONE rotating glow.
+	--// SINGLE-LAYER TRAVELING NEON BORDER
+	--// One UIStroke + one UIGradient. A narrow bright "hot spot"
+	--// rotates around the border to create a clockwise neon sweep.
 	--// ============================================================
 
 	local RunService = game:GetService("RunService")
 
-	-- Base border: same purple/pink neon family, but no white hot spot.
-	-- The single moving runner below is the only bright traveling glow.
+	-- Most of the border stays purple while this narrow pink/white
+	-- section becomes the moving glow highlight.
 	local NeonGradientColors = ColorSequence.new({
-		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(105, 25, 215)),
-		ColorSequenceKeypoint.new(0.50, Color3.fromRGB(185, 45, 255)),
-		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(105, 25, 215)),
+		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(92, 24, 190)),
+		ColorSequenceKeypoint.new(0.34, Color3.fromRGB(118, 30, 230)),
+		ColorSequenceKeypoint.new(0.43, Color3.fromRGB(210, 48, 255)),
+		ColorSequenceKeypoint.new(0.50, Color3.fromRGB(255, 205, 255)),
+		ColorSequenceKeypoint.new(0.57, Color3.fromRGB(255, 68, 226)),
+		ColorSequenceKeypoint.new(0.66, Color3.fromRGB(125, 35, 235)),
+		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(92, 24, 190)),
 	})
 
+	-- Dim the normal border slightly and let the moving center glow
+	-- become much brighter. This is still only a SINGLE stroke layer.
 	local NeonGradientTransparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0.00, 0.18),
-		NumberSequenceKeypoint.new(0.50, 0.08),
-		NumberSequenceKeypoint.new(1.00, 0.18),
+		NumberSequenceKeypoint.new(0.00, 0.28),
+		NumberSequenceKeypoint.new(0.34, 0.24),
+		NumberSequenceKeypoint.new(0.43, 0.08),
+		NumberSequenceKeypoint.new(0.50, 0.00),
+		NumberSequenceKeypoint.new(0.57, 0.08),
+		NumberSequenceKeypoint.new(0.66, 0.24),
+		NumberSequenceKeypoint.new(1.00, 0.28),
 	})
 
 	Window.Root = New("Frame", {
@@ -2151,145 +2159,25 @@ return function(Config)
 		Parent = Window.NeonStroke,
 	})
 
-	-- One short neon dash that travels clockwise around a rounded rect.
-	-- It is parented outside Window.Root so ClipsDescendants can remain
-	-- enabled and the acrylic/window contents never leak outside.
-	Window.NeonRunner = New("Frame", {
-		Name = "NeonRunner",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		BackgroundColor3 = Color3.fromRGB(255, 170, 255),
-		BackgroundTransparency = 0.05,
-		BorderSizePixel = 0,
-		Size = UDim2.fromOffset(24, 5),
-		ZIndex = 500,
-		Active = false,
-		Parent = Config.Parent,
-	}, {
-		New("UICorner", {
-			CornerRadius = UDim.new(1, 0),
-		}),
-		New("UIStroke", {
-			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-			LineJoinMode = Enum.LineJoinMode.Round,
-			Thickness = 2.5,
-			Transparency = 0.08,
-			Color = Color3.fromRGB(220, 65, 255),
-		}),
-		New("UIGradient", {
-			Color = ColorSequence.new({
-				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(175, 45, 255)),
-				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(255, 235, 255)),
-				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 65, 225)),
-			}),
-			Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0.00, 0.45),
-				NumberSequenceKeypoint.new(0.50, 0.00),
-				NumberSequenceKeypoint.new(1.00, 0.45),
-			}),
-			Rotation = 0,
-		}),
-	})
-
-	local function RoundedRectPoint(Width, Height, Radius, Phase)
-		Width = math.max(tonumber(Width) or 0, 1)
-		Height = math.max(tonumber(Height) or 0, 1)
-		Radius = math.clamp(tonumber(Radius) or 0, 0, math.min(Width, Height) * 0.5)
-		Phase = (tonumber(Phase) or 0) % 1
-
-		local Horizontal = math.max(Width - Radius * 2, 0)
-		local Vertical = math.max(Height - Radius * 2, 0)
-		local Arc = math.pi * Radius * 0.5
-		local Perimeter = Horizontal * 2 + Vertical * 2 + Arc * 4
-
-		if Perimeter <= 0 then
-			return Width * 0.5, Height * 0.5, 0
-		end
-
-		local Distance = Phase * Perimeter
-
-		if Distance <= Horizontal then
-			return Radius + Distance, 0, 0
-		end
-		Distance -= Horizontal
-
-		if Distance <= Arc and Radius > 0 then
-			local Angle = -math.pi * 0.5 + Distance / Radius
-			return Width - Radius + math.cos(Angle) * Radius,
-				Radius + math.sin(Angle) * Radius,
-				math.deg(Angle + math.pi * 0.5)
-		end
-		Distance -= Arc
-
-		if Distance <= Vertical then
-			return Width, Radius + Distance, 90
-		end
-		Distance -= Vertical
-
-		if Distance <= Arc and Radius > 0 then
-			local Angle = Distance / Radius
-			return Width - Radius + math.cos(Angle) * Radius,
-				Height - Radius + math.sin(Angle) * Radius,
-				math.deg(Angle + math.pi * 0.5)
-		end
-		Distance -= Arc
-
-		if Distance <= Horizontal then
-			return Width - Radius - Distance, Height, 180
-		end
-		Distance -= Horizontal
-
-		if Distance <= Arc and Radius > 0 then
-			local Angle = math.pi * 0.5 + Distance / Radius
-			return Radius + math.cos(Angle) * Radius,
-				Height - Radius + math.sin(Angle) * Radius,
-				math.deg(Angle + math.pi * 0.5)
-		end
-		Distance -= Arc
-
-		if Distance <= Vertical then
-			return 0, Height - Radius - Distance, 270
-		end
-		Distance -= Vertical
-
-		if Radius > 0 then
-			local Angle = math.pi + Distance / Radius
-			return Radius + math.cos(Angle) * Radius,
-				Radius + math.sin(Angle) * Radius,
-				math.deg(Angle + math.pi * 0.5)
-		end
-
-		return 0, 0, 0
-	end
-
-	-- One full lap every 6 seconds, same speed feel as the old rotation.
-	local NeonPhase = 0
-	local NeonLapSeconds = 6
+	-- Clockwise traveling glow. 60 degrees/second = one full sweep
+	-- every 6 seconds. Increase this number for a faster rotation.
+	local NeonRotation = 0
+	local NeonDegreesPerSecond = 60
 
 	Creator.AddSignal(RunService.RenderStepped, function(DeltaTime)
 		if not Window.Root or not Window.Root.Parent then
 			return
 		end
 
-		NeonPhase = (NeonPhase + DeltaTime / NeonLapSeconds) % 1
+		NeonRotation = (NeonRotation + DeltaTime * NeonDegreesPerSecond) % 360
 
-		if Window.NeonRunner and Window.NeonRunner.Parent then
-			local Size = Window.Root.AbsoluteSize
-			local Pos = Window.Root.AbsolutePosition
-			local X, Y, Rotation = RoundedRectPoint(Size.X, Size.Y, 9, NeonPhase)
-
-			Window.NeonRunner.Visible = Window.Root.Visible
-			Window.NeonRunner.Position = UDim2.fromOffset(Pos.X + X, Pos.Y + Y)
-			Window.NeonRunner.Rotation = Rotation
+		if Window.NeonGradient and Window.NeonGradient.Parent then
+			Window.NeonGradient.Rotation = NeonRotation
 		end
 
-		-- Floating icon gets the same ONE-runner effect, synced to the window.
-		if Window.FloatingNeonRunner and Window.FloatingNeonRunner.Parent then
-			local Parent = Window.FloatingNeonRunner.Parent
-			local Size = Parent.AbsoluteSize
-			local X, Y, Rotation = RoundedRectPoint(Size.X, Size.Y, 8, NeonPhase)
-
-			Window.FloatingNeonRunner.Position = UDim2.fromOffset(X, Y)
-			Window.FloatingNeonRunner.Rotation = Rotation
+		-- Keep the floating icon glow perfectly synced with the main window.
+		if Window.FloatingNeonGradient and Window.FloatingNeonGradient.Parent then
+			Window.FloatingNeonGradient.Rotation = NeonRotation
 		end
 	end)
 
@@ -2496,9 +2384,9 @@ end)
 		FloatingLogoImage,
 	})
 
-	--// FLOATING ICON: ONE ROTATING GLOW
-	--// Static neon border + one short moving highlight. No duplicate
-	--// opposite hot spot from a rotating linear UIGradient.
+	--// FLOATING ICON TRAVELING NEON BORDER
+	--// Uses the exact same single-stroke gradient as the main window
+	--// and shares its rotation so both sweeps stay synchronized.
 	Window.FloatingNeonStroke = New("UIStroke", {
 		Name = "FloatingNeonStroke",
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
@@ -2512,44 +2400,8 @@ end)
 	Window.FloatingNeonGradient = New("UIGradient", {
 		Color = NeonGradientColors,
 		Transparency = NeonGradientTransparency,
-		Rotation = 0,
+		Rotation = NeonRotation,
 		Parent = Window.FloatingNeonStroke,
-	})
-
-	Window.FloatingNeonRunner = New("Frame", {
-		Name = "FloatingNeonRunner",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		BackgroundColor3 = Color3.fromRGB(255, 170, 255),
-		BackgroundTransparency = 0.03,
-		BorderSizePixel = 0,
-		Size = UDim2.fromOffset(15, 4),
-		ZIndex = 205,
-		Active = false,
-		Parent = FloatingLogoBackground,
-	}, {
-		New("UICorner", {
-			CornerRadius = UDim.new(1, 0),
-		}),
-		New("UIStroke", {
-			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-			LineJoinMode = Enum.LineJoinMode.Round,
-			Thickness = 2,
-			Transparency = 0.08,
-			Color = Color3.fromRGB(220, 65, 255),
-		}),
-		New("UIGradient", {
-			Color = ColorSequence.new({
-				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(175, 45, 255)),
-				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(255, 235, 255)),
-				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 65, 225)),
-			}),
-			Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0.00, 0.45),
-				NumberSequenceKeypoint.new(0.50, 0.00),
-				NumberSequenceKeypoint.new(1.00, 0.45),
-			}),
-			Rotation = 0,
-		}),
 	})
 
 	Window.CloseUIShadow = New("ImageButton", {
