@@ -2093,17 +2093,12 @@ return function(Config)
 	})
 
 	--// ============================================================
-	--// ONE CURVED ROTATING NEON GLOW - NO STATIC OUTLINE
-	--// Only the animated purple comet is visible.
-	--// The trail follows the REAL rounded-rectangle perimeter,
-	--// including smooth quarter-circle corners.
+	--// STATIC BRIGHT NEON OUTLINE
+	--// No animation. Uses the brightest neon color from the previous
+	--// version with a little transparency for a clean soft-glow look.
 	--// ============================================================
 
-	local RunService = game:GetService("RunService")
-
-	local NEON_PURPLE = Color3.fromRGB(205, 0, 255)
-	local NEON_HOT = Color3.fromRGB(255, 105, 255)
-	local NEON_HEAD = Color3.fromRGB(255, 210, 255)
+	local NEON_STROKE = Color3.fromRGB(255, 210, 255)
 
 	Window.Root = New("Frame", {
 		Active = true,
@@ -2123,242 +2118,15 @@ return function(Config)
 		ResizeStartFrame,
 	})
 
-	local function MakeTrailPiece(Parent, Name, ZIndex)
-		local Halo = New("Frame", {
-			Name = Name .. "Halo",
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			BackgroundColor3 = NEON_PURPLE,
-			BackgroundTransparency = 1,
-			BorderSizePixel = 0,
-			Visible = true,
-			ZIndex = ZIndex,
-			Parent = Parent,
-		}, {
-			New("UICorner", {
-				CornerRadius = UDim.new(1, 0),
-			}),
-		})
-
-		local Core = New("Frame", {
-			Name = Name .. "Core",
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			BackgroundColor3 = NEON_HOT,
-			BackgroundTransparency = 1,
-			BorderSizePixel = 0,
-			Visible = true,
-			ZIndex = ZIndex + 1,
-			Parent = Parent,
-		}, {
-			New("UICorner", {
-				CornerRadius = UDim.new(1, 0),
-			}),
-		})
-
-		return {
-			Halo = Halo,
-			Core = Core,
-		}
-	end
-
-	-- Returns an exact point + tangent angle on a rounded rectangle.
-	-- Distance starts on the top edge and moves clockwise.
-	local function RoundedRectPoint(W, H, Radius, Inset, Distance)
-		local Left = Inset
-		local Top = Inset
-		local Right = W - Inset
-		local Bottom = H - Inset
-
-		local InnerW = math.max(2, Right - Left)
-		local InnerH = math.max(2, Bottom - Top)
-		local R = math.clamp(
-			Radius - Inset,
-			1,
-			math.max(1, math.min(InnerW, InnerH) * 0.5)
-		)
-
-		local Horizontal = math.max(0, InnerW - 2 * R)
-		local Vertical = math.max(0, InnerH - 2 * R)
-		local Arc = math.pi * R * 0.5
-		local Perimeter = (2 * Horizontal) + (2 * Vertical) + (4 * Arc)
-
-		local D = Distance % Perimeter
-
-		-- TOP: left -> right
-		if D < Horizontal then
-			return Left + R + D, Top, 0, Perimeter
-		end
-		D -= Horizontal
-
-		-- TOP-RIGHT CORNER: -90 -> 0 degrees
-		if D < Arc then
-			local Theta = (-math.pi * 0.5) + (D / R)
-			local CX, CY = Right - R, Top + R
-			return CX + math.cos(Theta) * R,
-				CY + math.sin(Theta) * R,
-				math.deg(Theta + math.pi * 0.5),
-				Perimeter
-		end
-		D -= Arc
-
-		-- RIGHT: top -> bottom
-		if D < Vertical then
-			return Right, Top + R + D, 90, Perimeter
-		end
-		D -= Vertical
-
-		-- BOTTOM-RIGHT CORNER: 0 -> 90 degrees
-		if D < Arc then
-			local Theta = D / R
-			local CX, CY = Right - R, Bottom - R
-			return CX + math.cos(Theta) * R,
-				CY + math.sin(Theta) * R,
-				math.deg(Theta + math.pi * 0.5),
-				Perimeter
-		end
-		D -= Arc
-
-		-- BOTTOM: right -> left
-		if D < Horizontal then
-			return Right - R - D, Bottom, 180, Perimeter
-		end
-		D -= Horizontal
-
-		-- BOTTOM-LEFT CORNER: 90 -> 180 degrees
-		if D < Arc then
-			local Theta = (math.pi * 0.5) + (D / R)
-			local CX, CY = Left + R, Bottom - R
-			return CX + math.cos(Theta) * R,
-				CY + math.sin(Theta) * R,
-				math.deg(Theta + math.pi * 0.5),
-				Perimeter
-		end
-		D -= Arc
-
-		-- LEFT: bottom -> top
-		if D < Vertical then
-			return Left, Bottom - R - D, 270, Perimeter
-		end
-		D -= Vertical
-
-		-- TOP-LEFT CORNER: 180 -> 270 degrees
-		local Theta = math.pi + (D / R)
-		local CX, CY = Left + R, Top + R
-		return CX + math.cos(Theta) * R,
-			CY + math.sin(Theta) * R,
-			math.deg(Theta + math.pi * 0.5),
-			Perimeter
-	end
-
-	local function CreateCurvedNeonSweep(Parent, ConfigData)
-		local Sweep = {
-			Parent = Parent,
-			Radius = ConfigData.Radius,
-			Inset = ConfigData.Inset,
-			TrailLength = ConfigData.TrailLength,
-			SegmentLength = ConfigData.SegmentLength,
-			CoreThickness = ConfigData.CoreThickness,
-			HaloThickness = ConfigData.HaloThickness,
-			Segments = {},
-		}
-
-		for Index = 1, ConfigData.SegmentCount do
-			Sweep.Segments[Index] = MakeTrailPiece(
-				Parent,
-				"CurvedNeonTrail" .. tostring(Index),
-				ConfigData.ZIndex
-			)
-		end
-
-		return Sweep
-	end
-
-	local function UpdateCurvedNeonSweep(Sweep, Phase)
-		if not Sweep or not Sweep.Parent or not Sweep.Parent.Parent then
-			return
-		end
-
-		local Size = Sweep.Parent.AbsoluteSize
-		local W, H = Size.X, Size.Y
-		if W < 8 or H < 8 then
-			return
-		end
-
-		local _, _, _, Perimeter = RoundedRectPoint(
-			W,
-			H,
-			Sweep.Radius,
-			Sweep.Inset,
-			0
-		)
-
-		local HeadDistance = (Phase % 1) * Perimeter
-		local Count = #Sweep.Segments
-
-		for Index, Piece in ipairs(Sweep.Segments) do
-			-- 0 = bright head, 1 = end of tail.
-			local TailT = (Index - 1) / math.max(1, Count - 1)
-			local Distance = HeadDistance - (TailT * Sweep.TrailLength)
-			local X, Y, Angle = RoundedRectPoint(
-				W,
-				H,
-				Sweep.Radius,
-				Sweep.Inset,
-				Distance
-			)
-
-			-- Lots of overlapping short pieces make one continuous curved streak.
-			local Length = Sweep.SegmentLength * (1 - (TailT * 0.28))
-			local Fade = TailT ^ 1.45
-
-			Piece.Halo.Position = UDim2.fromOffset(X, Y)
-			Piece.Halo.Size = UDim2.fromOffset(Length + 3, Sweep.HaloThickness)
-			Piece.Halo.Rotation = Angle
-			Piece.Halo.BackgroundTransparency = math.clamp(0.48 + (Fade * 0.51), 0, 0.995)
-			Piece.Halo.BackgroundColor3 = NEON_PURPLE:Lerp(NEON_HOT, 1 - TailT)
-
-			Piece.Core.Position = UDim2.fromOffset(X, Y)
-			Piece.Core.Size = UDim2.fromOffset(Length, Sweep.CoreThickness)
-			Piece.Core.Rotation = Angle
-			Piece.Core.BackgroundTransparency = math.clamp(0.01 + (Fade * 0.98), 0, 0.995)
-
-			-- Bright pink-white head, then quickly settles into electric purple.
-			if TailT < 0.12 then
-				local HeadBlend = TailT / 0.12
-				Piece.Core.BackgroundColor3 = NEON_HEAD:Lerp(NEON_HOT, HeadBlend)
-			else
-				local PurpleBlend = math.clamp((TailT - 0.12) / 0.55, 0, 1)
-				Piece.Core.BackgroundColor3 = NEON_HOT:Lerp(NEON_PURPLE, PurpleBlend)
-			end
-		end
-	end
-
-	Window.MainNeonSweep = CreateCurvedNeonSweep(Window.Root, {
-		Radius = 12,
-		Inset = 4.0,
-		TrailLength = 145,
-		SegmentLength = 10.5,
-		CoreThickness = 3.2,
-		HaloThickness = 7.0,
-		SegmentCount = 44,
-		ZIndex = 1000,
+	Window.NeonStroke = New("UIStroke", {
+		Name = "NeonStroke",
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Thickness = 3.1,
+		Transparency = 0.10,
+		Color = NEON_STROKE,
+		Parent = Window.Root,
 	})
-
-	-- Clockwise forever. One lap every 7.5 seconds.
-	local NeonSweepPhase = 0
-	local NeonSweepSecondsPerLap = 7.5
-
-	Creator.AddSignal(RunService.RenderStepped, function(DeltaTime)
-		if not Window.Root or not Window.Root.Parent then
-			return
-		end
-
-		NeonSweepPhase = (NeonSweepPhase + (DeltaTime / NeonSweepSecondsPerLap)) % 1
-		UpdateCurvedNeonSweep(Window.MainNeonSweep, NeonSweepPhase)
-
-		if Window.FloatingNeonSweep then
-			UpdateCurvedNeonSweep(Window.FloatingNeonSweep, NeonSweepPhase)
-		end
-	end)
 
 local AccountInfo = Instance.new("Frame")
 local AvatarFrame = Instance.new("Frame")
@@ -2563,17 +2331,15 @@ end)
 		FloatingLogoImage,
 	})
 
-	--// FLOATING ICON: ONLY the same curved rotating glow.
-	--// No permanent neon outline behind it.
-	Window.FloatingNeonSweep = CreateCurvedNeonSweep(FloatingLogoBackground, {
-		Radius = 10,
-		Inset = 3.0,
-		TrailLength = 48,
-		SegmentLength = 7.5,
-		CoreThickness = 2.8,
-		HaloThickness = 5.6,
-		SegmentCount = 24,
-		ZIndex = 203,
+	--// FLOATING ICON: same bright static neon outline.
+	Window.FloatingNeonStroke = New("UIStroke", {
+		Name = "FloatingNeonStroke",
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Thickness = 2.8,
+		Transparency = 0.08,
+		Color = NEON_STROKE,
+		Parent = FloatingLogoBackground,
 	})
 
 	Window.CloseUIShadow = New("ImageButton", {
