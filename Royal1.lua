@@ -2093,28 +2093,26 @@ return function(Config)
 	})
 
 	--// ============================================================
-	--// SINGLE-LAYER SLOW BREATHING NEON BORDER
-	--// No rotation. The gradient stays in place while the stroke
-	--// slowly grows brighter/thicker, then relaxes back down.
+	--// FULL-PERIMETER SLOW BREATHING NEON BORDER
+	--// Inhale  = thicker + brighter + larger-looking glow.
+	--// Exhale  = thinner + dimmer + tighter-looking glow.
+	--// The color gradient stays visible around the ENTIRE stroke;
+	--// there is no gradient transparency fading the side edges.
 	--// ============================================================
 
 	local TweenService = game:GetService("TweenService")
 
 	local NeonGradientColors = ColorSequence.new({
-		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(94, 24, 190)),
-		ColorSequenceKeypoint.new(0.25, Color3.fromRGB(150, 42, 245)),
-		ColorSequenceKeypoint.new(0.50, Color3.fromRGB(255, 120, 245)),
-		ColorSequenceKeypoint.new(0.75, Color3.fromRGB(165, 54, 255)),
-		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(94, 24, 190)),
+		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(105, 35, 220)),
+		ColorSequenceKeypoint.new(0.22, Color3.fromRGB(175, 55, 255)),
+		ColorSequenceKeypoint.new(0.50, Color3.fromRGB(255, 125, 245)),
+		ColorSequenceKeypoint.new(0.78, Color3.fromRGB(180, 65, 255)),
+		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(105, 35, 220)),
 	})
 
-	local NeonGradientTransparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0.00, 0.12),
-		NumberSequenceKeypoint.new(0.25, 0.04),
-		NumberSequenceKeypoint.new(0.50, 0.00),
-		NumberSequenceKeypoint.new(0.75, 0.04),
-		NumberSequenceKeypoint.new(1.00, 0.12),
-	})
+	-- Keep transparency UNIFORM across the whole gradient so the
+	-- left/right edges glow just as much as the top/bottom edges.
+	local NeonGradientTransparency = NumberSequence.new(0)
 
 	Window.Root = New("Frame", {
 		Active = true,
@@ -2138,8 +2136,8 @@ return function(Config)
 		Name = "NeonStroke",
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		LineJoinMode = Enum.LineJoinMode.Round,
-		Thickness = 3.6,
-		Transparency = 0.18,
+		Thickness = 2.4,       -- exhale size
+		Transparency = 0.34,   -- exhale glow
 		Color = Color3.new(1, 1, 1),
 		Parent = Window.Root,
 	})
@@ -2151,10 +2149,11 @@ return function(Config)
 		Parent = Window.NeonStroke,
 	})
 
-	-- Slow-motion glow pulse. One direction takes 1.8 seconds,
-	-- then it automatically reverses for the zoom-out phase.
+	-- Slow breathing: 2.4s inhale, then 2.4s exhale.
+	-- Thickness creates the visible zoom/expansion while transparency
+	-- controls how strong the glow feels.
 	local NeonPulseInfo = TweenInfo.new(
-		1.8,
+		2.4,
 		Enum.EasingStyle.Sine,
 		Enum.EasingDirection.InOut,
 		-1,
@@ -2165,8 +2164,8 @@ return function(Config)
 		Window.NeonStroke,
 		NeonPulseInfo,
 		{
-			Thickness = 5.2,
-			Transparency = 0.015,
+			Thickness = 7.0,      -- inhale: glow expands
+			Transparency = 0.015, -- inhale: glow gets bright
 		}
 	)
 
@@ -2375,14 +2374,14 @@ end)
 		FloatingLogoImage,
 	})
 
-	--// FLOATING ICON SLOW BREATHING NEON BORDER
-	--// Same slow pulse timing as the main window.
+	--// FLOATING ICON FULL-PERIMETER BREATHING NEON BORDER
+	--// Same inhale/exhale rhythm as the main window.
 	Window.FloatingNeonStroke = New("UIStroke", {
 		Name = "FloatingNeonStroke",
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		LineJoinMode = Enum.LineJoinMode.Round,
-		Thickness = 2.8,
-		Transparency = 0.16,
+		Thickness = 2.0,       -- exhale size
+		Transparency = 0.34,   -- exhale glow
 		Color = Color3.new(1, 1, 1),
 		Parent = FloatingLogoBackground,
 	})
@@ -2398,8 +2397,8 @@ end)
 		Window.FloatingNeonStroke,
 		NeonPulseInfo,
 		{
-			Thickness = 4.4,
-			Transparency = 0.01,
+			Thickness = 6.0,      -- inhale: icon glow expands
+			Transparency = 0.01,  -- inhale: icon glow gets bright
 		}
 	)
 
