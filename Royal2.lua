@@ -2093,45 +2093,34 @@ return function(Config)
 	})
 
 	--// ============================================================
-	--// ONE CLEAN ROTATING NEON SWEEP
-	--// The old rotating UIGradient creates two opposite highlights.
-	--// Keep the neon border itself steady, then move ONE soft streak
-	--// around the rounded perimeter. No second/opposite glow.
+	--// BRIGHT PURPLE NEON + ONE SMOOTH CLOCKWISE SWEEP
+	--// The full outline stays neon-bright at all times.
+	--// A single LONG faded highlight travels around the perimeter.
+	--// No rotating UIGradient = no second/opposite glow.
+	--// No rounded moving frame = no tiny capsule effect.
 	--// ============================================================
 
 	local RunService = game:GetService("RunService")
 
-	-- Steady neon-purple border. No baked-in white hotspot here,
-	-- otherwise it would look like a second glow while the streak moves.
-	local NeonGradientColors = ColorSequence.new({
-		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(92, 24, 190)),
-		ColorSequenceKeypoint.new(0.50, Color3.fromRGB(176, 42, 255)),
-		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(92, 24, 190)),
+	local NEON_PURPLE = Color3.fromRGB(215, 0, 255)
+	local NEON_HALO_PURPLE = Color3.fromRGB(175, 0, 255)
+	local NEON_HOT_PURPLE = Color3.fromRGB(255, 70, 255)
+
+	local SweepColor = ColorSequence.new({
+		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(155, 0, 255)),
+		ColorSequenceKeypoint.new(0.48, Color3.fromRGB(205, 20, 255)),
+		ColorSequenceKeypoint.new(0.78, Color3.fromRGB(255, 120, 255)),
+		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(225, 35, 255)),
 	})
 
-	local NeonGradientTransparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0.00, 0.20),
-		NumberSequenceKeypoint.new(0.50, 0.06),
-		NumberSequenceKeypoint.new(1.00, 0.20),
-	})
-
-	-- This gradient belongs to the ONE moving streak. The ends are fully
-	-- transparent so it looks like a neon sweep, not a solid rectangle.
-	local SweepColors = ColorSequence.new({
-		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(122, 30, 235)),
-		ColorSequenceKeypoint.new(0.36, Color3.fromRGB(226, 58, 255)),
-		ColorSequenceKeypoint.new(0.50, Color3.fromRGB(255, 225, 255)),
-		ColorSequenceKeypoint.new(0.64, Color3.fromRGB(255, 70, 224)),
-		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(122, 30, 235)),
-	})
-
+	-- Long soft comet: invisible tail -> bright head -> soft fade.
 	local SweepTransparency = NumberSequence.new({
 		NumberSequenceKeypoint.new(0.00, 1.00),
-		NumberSequenceKeypoint.new(0.18, 0.86),
-		NumberSequenceKeypoint.new(0.38, 0.28),
-		NumberSequenceKeypoint.new(0.50, 0.00),
-		NumberSequenceKeypoint.new(0.62, 0.28),
-		NumberSequenceKeypoint.new(0.82, 0.86),
+		NumberSequenceKeypoint.new(0.18, 0.92),
+		NumberSequenceKeypoint.new(0.48, 0.52),
+		NumberSequenceKeypoint.new(0.72, 0.08),
+		NumberSequenceKeypoint.new(0.84, 0.00),
+		NumberSequenceKeypoint.new(0.94, 0.38),
 		NumberSequenceKeypoint.new(1.00, 1.00),
 	})
 
@@ -2144,7 +2133,7 @@ return function(Config)
 		ClipsDescendants = true,
 	}, {
 		New("UICorner", {
-			CornerRadius = UDim.new(0, 9),
+			CornerRadius = UDim.new(0, 12),
 		}),
 		Window.AcrylicPaint.Frame,
 		Window.TabDisplay,
@@ -2153,144 +2142,189 @@ return function(Config)
 		ResizeStartFrame,
 	})
 
+	-- Soft purple halo behind the sharp neon line.
+	Window.NeonHaloStroke = New("UIStroke", {
+		Name = "NeonHaloStroke",
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Thickness = 4.8,
+		Transparency = 0.68,
+		Color = NEON_HALO_PURPLE,
+		Parent = Window.Root,
+	})
+
+	-- Main outline: always bright purple, all four sides, rounded corners.
 	Window.NeonStroke = New("UIStroke", {
 		Name = "NeonStroke",
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		LineJoinMode = Enum.LineJoinMode.Round,
-		Thickness = 4.5,
-		Transparency = 0.05,
-		Color = Color3.new(1, 1, 1),
+		Thickness = 2.5,
+		Transparency = 0.00,
+		Color = NEON_PURPLE,
 		Parent = Window.Root,
 	})
 
-	Window.NeonGradient = New("UIGradient", {
-		Color = NeonGradientColors,
-		Transparency = NeonGradientTransparency,
-		Rotation = 0,
-		Parent = Window.NeonStroke,
-	})
+	local function MakeSweepEdge(Parent, Name, ZIndex)
+		local Halo = New("Frame", {
+			Name = Name .. "Halo",
+			BackgroundColor3 = NEON_HOT_PURPLE,
+			BackgroundTransparency = 0.58,
+			BorderSizePixel = 0,
+			Visible = false,
+			ZIndex = ZIndex,
+			Parent = Parent,
+		})
 
-	-- One thin streak only. It is a filled line with transparent tails,
-	-- not a UIStroke around a little box (that was the ugly v13 block).
-	Window.NeonRunner = New("Frame", {
-		Name = "NeonRunner",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = 0.02,
-		BorderSizePixel = 0,
-		Size = UDim2.fromOffset(52, 4),
-		ZIndex = 500,
-		Active = false,
-		Parent = Config.Parent,
-	}, {
-		New("UICorner", {
-			CornerRadius = UDim.new(1, 0),
-		}),
-		New("UIGradient", {
-			Color = SweepColors,
+		local HaloGradient = New("UIGradient", {
+			Color = SweepColor,
 			Transparency = SweepTransparency,
 			Rotation = 0,
-		}),
-	})
+			Parent = Halo,
+		})
 
-	local function RoundedRectPoint(Width, Height, Radius, Phase)
-		Width = math.max(tonumber(Width) or 0, 1)
-		Height = math.max(tonumber(Height) or 0, 1)
-		Radius = math.clamp(tonumber(Radius) or 0, 0, math.min(Width, Height) * 0.5)
-		Phase = (tonumber(Phase) or 0) % 1
+		local Core = New("Frame", {
+			Name = Name .. "Core",
+			BackgroundColor3 = NEON_HOT_PURPLE,
+			BackgroundTransparency = 0.03,
+			BorderSizePixel = 0,
+			Visible = false,
+			ZIndex = ZIndex + 1,
+			Parent = Parent,
+		})
 
-		local Horizontal = math.max(Width - Radius * 2, 0)
-		local Vertical = math.max(Height - Radius * 2, 0)
-		local Arc = math.pi * Radius * 0.5
-		local Perimeter = Horizontal * 2 + Vertical * 2 + Arc * 4
+		local CoreGradient = New("UIGradient", {
+			Color = SweepColor,
+			Transparency = SweepTransparency,
+			Rotation = 0,
+			Parent = Core,
+		})
 
-		if Perimeter <= 0 then
-			return Width * 0.5, Height * 0.5, 0
-		end
-
-		local Distance = Phase * Perimeter
-
-		if Distance <= Horizontal then
-			return Radius + Distance, 0, 0
-		end
-		Distance -= Horizontal
-
-		if Distance <= Arc and Radius > 0 then
-			local Angle = -math.pi * 0.5 + Distance / Radius
-			return Width - Radius + math.cos(Angle) * Radius,
-				Radius + math.sin(Angle) * Radius,
-				math.deg(Angle + math.pi * 0.5)
-		end
-		Distance -= Arc
-
-		if Distance <= Vertical then
-			return Width, Radius + Distance, 90
-		end
-		Distance -= Vertical
-
-		if Distance <= Arc and Radius > 0 then
-			local Angle = Distance / Radius
-			return Width - Radius + math.cos(Angle) * Radius,
-				Height - Radius + math.sin(Angle) * Radius,
-				math.deg(Angle + math.pi * 0.5)
-		end
-		Distance -= Arc
-
-		if Distance <= Horizontal then
-			return Width - Radius - Distance, Height, 180
-		end
-		Distance -= Horizontal
-
-		if Distance <= Arc and Radius > 0 then
-			local Angle = math.pi * 0.5 + Distance / Radius
-			return Radius + math.cos(Angle) * Radius,
-				Height - Radius + math.sin(Angle) * Radius,
-				math.deg(Angle + math.pi * 0.5)
-		end
-		Distance -= Arc
-
-		if Distance <= Vertical then
-			return 0, Height - Radius - Distance, 270
-		end
-		Distance -= Vertical
-
-		if Radius > 0 then
-			local Angle = math.pi + Distance / Radius
-			return Radius + math.cos(Angle) * Radius,
-				Radius + math.sin(Angle) * Radius,
-				math.deg(Angle + math.pi * 0.5)
-		end
-
-		return 0, 0, 0
+		return {
+			Halo = Halo,
+			HaloGradient = HaloGradient,
+			Core = Core,
+			CoreGradient = CoreGradient,
+		}
 	end
 
-	local NeonPhase = 0
-	local NeonLapSeconds = 6
+	local function CreateNeonSweep(Parent, ConfigData)
+		local Sweep = {
+			Parent = Parent,
+			CoreThickness = ConfigData.CoreThickness,
+			HaloThickness = ConfigData.HaloThickness,
+			MinLength = ConfigData.MinLength,
+			MaxLength = ConfigData.MaxLength,
+			Top = MakeSweepEdge(Parent, "NeonSweepTop", ConfigData.ZIndex),
+			Right = MakeSweepEdge(Parent, "NeonSweepRight", ConfigData.ZIndex),
+			Bottom = MakeSweepEdge(Parent, "NeonSweepBottom", ConfigData.ZIndex),
+			Left = MakeSweepEdge(Parent, "NeonSweepLeft", ConfigData.ZIndex),
+		}
+
+		-- Gradient direction follows the clockwise travel direction.
+		Sweep.Top.HaloGradient.Rotation = 0
+		Sweep.Top.CoreGradient.Rotation = 0
+		Sweep.Right.HaloGradient.Rotation = 90
+		Sweep.Right.CoreGradient.Rotation = 90
+		Sweep.Bottom.HaloGradient.Rotation = 180
+		Sweep.Bottom.CoreGradient.Rotation = 180
+		Sweep.Left.HaloGradient.Rotation = 270
+		Sweep.Left.CoreGradient.Rotation = 270
+
+		return Sweep
+	end
+
+	local function HideSweep(Sweep)
+		for _, Edge in next, { Sweep.Top, Sweep.Right, Sweep.Bottom, Sweep.Left } do
+			Edge.Halo.Visible = false
+			Edge.Core.Visible = false
+		end
+	end
+
+	local function ShowHorizontal(Edge, X, Y, Length, Sweep)
+		Edge.Halo.Size = UDim2.fromOffset(Length, Sweep.HaloThickness)
+		Edge.Halo.AnchorPoint = Vector2.new(0.5, 0.5)
+		Edge.Halo.Position = UDim2.fromOffset(X, Y)
+		Edge.Halo.Visible = true
+
+		Edge.Core.Size = UDim2.fromOffset(Length, Sweep.CoreThickness)
+		Edge.Core.AnchorPoint = Vector2.new(0.5, 0.5)
+		Edge.Core.Position = UDim2.fromOffset(X, Y)
+		Edge.Core.Visible = true
+	end
+
+	local function ShowVertical(Edge, X, Y, Length, Sweep)
+		Edge.Halo.Size = UDim2.fromOffset(Sweep.HaloThickness, Length)
+		Edge.Halo.AnchorPoint = Vector2.new(0.5, 0.5)
+		Edge.Halo.Position = UDim2.fromOffset(X, Y)
+		Edge.Halo.Visible = true
+
+		Edge.Core.Size = UDim2.fromOffset(Sweep.CoreThickness, Length)
+		Edge.Core.AnchorPoint = Vector2.new(0.5, 0.5)
+		Edge.Core.Position = UDim2.fromOffset(X, Y)
+		Edge.Core.Visible = true
+	end
+
+	local function UpdateNeonSweep(Sweep, Phase)
+		if not Sweep or not Sweep.Parent or not Sweep.Parent.Parent then
+			return
+		end
+
+		local Size = Sweep.Parent.AbsoluteSize
+		local W, H = Size.X, Size.Y
+		if W < 4 or H < 4 then
+			return
+		end
+
+		HideSweep(Sweep)
+
+		local Perimeter = 2 * (W + H)
+		local Distance = (Phase % 1) * Perimeter
+		local Length = math.clamp(math.min(W, H) * 0.32, Sweep.MinLength, Sweep.MaxLength)
+
+		-- Keep the moving light inside the clipping rectangle while the
+		-- permanent UIStroke supplies the perfectly rounded outer corners.
+		local CoreInset = math.max(Sweep.CoreThickness, Sweep.HaloThickness) * 0.5
+
+		if Distance < W then
+			-- TOP: left -> right
+			ShowHorizontal(Sweep.Top, Distance, CoreInset, Length, Sweep)
+		elseif Distance < W + H then
+			-- RIGHT: top -> bottom
+			ShowVertical(Sweep.Right, W - CoreInset, Distance - W, Length, Sweep)
+		elseif Distance < (2 * W) + H then
+			-- BOTTOM: right -> left
+			local D = Distance - (W + H)
+			ShowHorizontal(Sweep.Bottom, W - D, H - CoreInset, Length, Sweep)
+		else
+			-- LEFT: bottom -> top
+			local D = Distance - ((2 * W) + H)
+			ShowVertical(Sweep.Left, CoreInset, H - D, Length, Sweep)
+		end
+	end
+
+	Window.MainNeonSweep = CreateNeonSweep(Window.Root, {
+		CoreThickness = 3.4,
+		HaloThickness = 7.0,
+		MinLength = 82,
+		MaxLength = 135,
+		ZIndex = 1000,
+	})
+
+	-- One full lap every ~7.5 seconds. This is a real perimeter sweep,
+	-- not a rotating linear gradient, so there is only ONE bright region.
+	local NeonSweepPhase = 0
+	local NeonSweepSecondsPerLap = 7.5
 
 	Creator.AddSignal(RunService.RenderStepped, function(DeltaTime)
 		if not Window.Root or not Window.Root.Parent then
 			return
 		end
 
-		NeonPhase = (NeonPhase + DeltaTime / NeonLapSeconds) % 1
+		NeonSweepPhase = (NeonSweepPhase + (DeltaTime / NeonSweepSecondsPerLap)) % 1
+		UpdateNeonSweep(Window.MainNeonSweep, NeonSweepPhase)
 
-		if Window.NeonRunner and Window.NeonRunner.Parent then
-			local Size = Window.Root.AbsoluteSize
-			local Pos = Window.Root.AbsolutePosition
-			local X, Y, Rotation = RoundedRectPoint(Size.X, Size.Y, 9, NeonPhase)
-
-			Window.NeonRunner.Visible = Window.Root.Visible
-			Window.NeonRunner.Position = UDim2.fromOffset(Pos.X + X, Pos.Y + Y)
-			Window.NeonRunner.Rotation = Rotation
-		end
-
-		if Window.FloatingNeonRunner and Window.FloatingNeonRunner.Parent then
-			local Parent = Window.FloatingNeonRunner.Parent
-			local Size = Parent.AbsoluteSize
-			local X, Y, Rotation = RoundedRectPoint(Size.X, Size.Y, 8, NeonPhase)
-
-			Window.FloatingNeonRunner.Position = UDim2.fromOffset(X, Y)
-			Window.FloatingNeonRunner.Rotation = Rotation
+		if Window.FloatingNeonSweep then
+			UpdateNeonSweep(Window.FloatingNeonSweep, NeonSweepPhase)
 		end
 	end)
 
@@ -2492,48 +2526,39 @@ end)
 		ZIndex = 201,
 	}, {
 		New("UICorner", {
-			CornerRadius = UDim.new(0, 8),
+			CornerRadius = UDim.new(0, 10),
 		}),
 		FloatingLogoImage,
 	})
 
-	--// FLOATING ICON: SAME ONE-CLEAN-SWEEP EFFECT
+	--// FLOATING ICON: same bright purple outline + same ONE smooth sweep.
+	--// Rounded base border stays visible; the moving highlight is long and faded.
+	Window.FloatingNeonHaloStroke = New("UIStroke", {
+		Name = "FloatingNeonHaloStroke",
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Thickness = 4.4,
+		Transparency = 0.68,
+		Color = NEON_HALO_PURPLE,
+		Parent = FloatingLogoBackground,
+	})
+
 	Window.FloatingNeonStroke = New("UIStroke", {
 		Name = "FloatingNeonStroke",
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		LineJoinMode = Enum.LineJoinMode.Round,
-		Thickness = 3.5,
-		Transparency = 0.03,
-		Color = Color3.new(1, 1, 1),
+		Thickness = 2.4,
+		Transparency = 0.00,
+		Color = NEON_PURPLE,
 		Parent = FloatingLogoBackground,
 	})
 
-	Window.FloatingNeonGradient = New("UIGradient", {
-		Color = NeonGradientColors,
-		Transparency = NeonGradientTransparency,
-		Rotation = 0,
-		Parent = Window.FloatingNeonStroke,
-	})
-
-	Window.FloatingNeonRunner = New("Frame", {
-		Name = "FloatingNeonRunner",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = 0.02,
-		BorderSizePixel = 0,
-		Size = UDim2.fromOffset(18, 3),
-		ZIndex = 205,
-		Active = false,
-		Parent = FloatingLogoBackground,
-	}, {
-		New("UICorner", {
-			CornerRadius = UDim.new(1, 0),
-		}),
-		New("UIGradient", {
-			Color = SweepColors,
-			Transparency = SweepTransparency,
-			Rotation = 0,
-		}),
+	Window.FloatingNeonSweep = CreateNeonSweep(FloatingLogoBackground, {
+		CoreThickness = 3.0,
+		HaloThickness = 5.6,
+		MinLength = 18,
+		MaxLength = 28,
+		ZIndex = 203,
 	})
 
 	Window.CloseUIShadow = New("ImageButton", {
