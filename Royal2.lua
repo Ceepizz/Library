@@ -2098,7 +2098,7 @@ return function(Config)
 	--// version with a little transparency for a clean soft-glow look.
 	--// ============================================================
 
-	local NEON_STROKE = Color3.fromRGB(255, 210, 255)
+	local NEON_STROKE = Color3.fromRGB(205, 0, 255)
 
 	Window.Root = New("Frame", {
 		Active = true,
@@ -2123,7 +2123,7 @@ return function(Config)
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		LineJoinMode = Enum.LineJoinMode.Round,
 		Thickness = 3.1,
-		Transparency = 0.10,
+		Transparency = 0.5,
 		Color = NEON_STROKE,
 		Parent = Window.Root,
 	})
@@ -2337,7 +2337,7 @@ end)
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		LineJoinMode = Enum.LineJoinMode.Round,
 		Thickness = 2.8,
-		Transparency = 0.08,
+		Transparency = 0.5,
 		Color = NEON_STROKE,
 		Parent = FloatingLogoBackground,
 	})
