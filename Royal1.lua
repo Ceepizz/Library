@@ -2174,6 +2174,11 @@ return function(Config)
 		if Window.NeonGradient and Window.NeonGradient.Parent then
 			Window.NeonGradient.Rotation = NeonRotation
 		end
+
+		-- Keep the floating icon glow perfectly synced with the main window.
+		if Window.FloatingNeonGradient and Window.FloatingNeonGradient.Parent then
+			Window.FloatingNeonGradient.Rotation = NeonRotation
+		end
 	end)
 
 local AccountInfo = Instance.new("Frame")
@@ -2377,6 +2382,26 @@ end)
 			CornerRadius = UDim.new(0, 8),
 		}),
 		FloatingLogoImage,
+	})
+
+	--// FLOATING ICON TRAVELING NEON BORDER
+	--// Uses the exact same single-stroke gradient as the main window
+	--// and shares its rotation so both sweeps stay synchronized.
+	Window.FloatingNeonStroke = New("UIStroke", {
+		Name = "FloatingNeonStroke",
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Thickness = 3.5,
+		Transparency = 0.03,
+		Color = Color3.new(1, 1, 1),
+		Parent = FloatingLogoBackground,
+	})
+
+	Window.FloatingNeonGradient = New("UIGradient", {
+		Color = NeonGradientColors,
+		Transparency = NeonGradientTransparency,
+		Rotation = NeonRotation,
+		Parent = Window.FloatingNeonStroke,
 	})
 
 	Window.CloseUIShadow = New("ImageButton", {
