@@ -2093,26 +2093,34 @@ return function(Config)
 	})
 
 	--// ============================================================
-	--// ============================================================
-	--// COMPACT NEON-PURPLE BREATHING BORDER
-	--// One clean UIStroke only: no giant shadow/image halo.
-	--// Inhale  = slightly thicker + brighter neon.
-	--// Exhale  = thinner + softer neon.
-	--// The gradient stays visible on ALL four sides.
+	--// SINGLE-LAYER STATIC NEON BORDER
+	--// Exact same neon colors, brightness, thickness and curvature
+	--// as the traveling version, but with NO rotation animation.
 	--// ============================================================
 
-	local TweenService = game:GetService("TweenService")
-
+	-- Most of the border stays purple while this narrow pink/white
+	-- section remains as a fixed neon highlight.
 	local NeonGradientColors = ColorSequence.new({
-		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 72, 255)),
-		ColorSequenceKeypoint.new(0.24, Color3.fromRGB(210, 40, 255)),
-		ColorSequenceKeypoint.new(0.50, Color3.fromRGB(156, 24, 255)),
-		ColorSequenceKeypoint.new(0.76, Color3.fromRGB(210, 40, 255)),
-		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 72, 255)),
+		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(92, 24, 190)),
+		ColorSequenceKeypoint.new(0.34, Color3.fromRGB(118, 30, 230)),
+		ColorSequenceKeypoint.new(0.43, Color3.fromRGB(210, 48, 255)),
+		ColorSequenceKeypoint.new(0.50, Color3.fromRGB(255, 205, 255)),
+		ColorSequenceKeypoint.new(0.57, Color3.fromRGB(255, 68, 226)),
+		ColorSequenceKeypoint.new(0.66, Color3.fromRGB(125, 35, 235)),
+		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(92, 24, 190)),
 	})
 
-	-- No transparent spots in the gradient. Every side stays neon.
-	local NeonGradientTransparency = NumberSequence.new(0)
+	-- Dim the normal border slightly and let the moving center glow
+	-- become much brighter. This is still only a SINGLE stroke layer.
+	local NeonGradientTransparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0.00, 0.28),
+		NumberSequenceKeypoint.new(0.34, 0.24),
+		NumberSequenceKeypoint.new(0.43, 0.08),
+		NumberSequenceKeypoint.new(0.50, 0.00),
+		NumberSequenceKeypoint.new(0.57, 0.08),
+		NumberSequenceKeypoint.new(0.66, 0.24),
+		NumberSequenceKeypoint.new(1.00, 0.28),
+	})
 
 	Window.Root = New("Frame", {
 		Active = true,
@@ -2120,11 +2128,10 @@ return function(Config)
 		Size = Window.Size,
 		Position = Window.Position,
 		Parent = Config.Parent,
-		ZIndex = 2,
 		ClipsDescendants = true,
 	}, {
 		New("UICorner", {
-			CornerRadius = UDim.new(0, 12),
+			CornerRadius = UDim.new(0, 9),
 		}),
 		Window.AcrylicPaint.Frame,
 		Window.TabDisplay,
@@ -2137,8 +2144,8 @@ return function(Config)
 		Name = "NeonStroke",
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		LineJoinMode = Enum.LineJoinMode.Round,
-		Thickness = 1.35,
-		Transparency = 0.30,
+		Thickness = 4.5,
+		Transparency = 0.05,
 		Color = Color3.new(1, 1, 1),
 		Parent = Window.Root,
 	})
@@ -2150,26 +2157,9 @@ return function(Config)
 		Parent = Window.NeonStroke,
 	})
 
-	-- Slow inhale/exhale. Kept intentionally compact so the outline
-	-- never turns into a huge solid purple band.
-	local NeonPulseInfo = TweenInfo.new(
-		2.8,
-		Enum.EasingStyle.Sine,
-		Enum.EasingDirection.InOut,
-		-1,
-		true
-	)
-
-	Window.NeonStrokePulseTween = TweenService:Create(
-		Window.NeonStroke,
-		NeonPulseInfo,
-		{
-			Thickness = 2.65,
-			Transparency = 0.02,
-		}
-	)
-
-	Window.NeonStrokePulseTween:Play()
+	-- Keep the gradient fixed. This preserves the exact neon style
+	-- without the clockwise traveling/sweep animation.
+	local NeonRotation = 0
 
 local AccountInfo = Instance.new("Frame")
 local AvatarFrame = Instance.new("Frame")
@@ -2369,19 +2359,20 @@ end)
 		ZIndex = 201,
 	}, {
 		New("UICorner", {
-			CornerRadius = UDim.new(0, 12),
+			CornerRadius = UDim.new(0, 8),
 		}),
 		FloatingLogoImage,
 	})
 
-	--// FLOATING ICON COMPACT NEON-PURPLE BREATHING BORDER
-	--// Same inhale/exhale as the window, with a slightly tighter size.
+	--// FLOATING ICON STATIC NEON BORDER
+	--// Uses the exact same single-stroke gradient as the main window
+	--// with the same fixed highlight and no rotation animation.
 	Window.FloatingNeonStroke = New("UIStroke", {
 		Name = "FloatingNeonStroke",
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		LineJoinMode = Enum.LineJoinMode.Round,
-		Thickness = 1.25,
-		Transparency = 0.28,
+		Thickness = 3.5,
+		Transparency = 0.03,
 		Color = Color3.new(1, 1, 1),
 		Parent = FloatingLogoBackground,
 	})
@@ -2389,20 +2380,9 @@ end)
 	Window.FloatingNeonGradient = New("UIGradient", {
 		Color = NeonGradientColors,
 		Transparency = NeonGradientTransparency,
-		Rotation = 0,
+		Rotation = NeonRotation,
 		Parent = Window.FloatingNeonStroke,
 	})
-
-	Window.FloatingNeonStrokePulseTween = TweenService:Create(
-		Window.FloatingNeonStroke,
-		NeonPulseInfo,
-		{
-			Thickness = 2.45,
-			Transparency = 0.01,
-		}
-	)
-
-	Window.FloatingNeonStrokePulseTween:Play()
 
 	Window.CloseUIShadow = New("ImageButton", {
 		Name = "CloseUIShadow",
@@ -2450,33 +2430,12 @@ end)
 	Window.ContainerBackMotor = Flipper.SingleMotor.new(0)
 	Window.ContainerPosMotor = Flipper.SingleMotor.new(94)
 
-	local function SyncMainNeonGlow()
-		if not Window.MainNeonGlow or not Window.MainNeonGlow.Parent then
-			return
-		end
-
-		local rootSize = Window.Root.Size
-		local rootPos = Window.Root.Position
-
-		Window.MainNeonGlow.Size = UDim2.fromOffset(
-			rootSize.X.Offset + 24,
-			rootSize.Y.Offset + 24
-		)
-
-		Window.MainNeonGlow.Position = UDim2.fromOffset(
-			rootPos.X.Offset + rootSize.X.Offset / 2,
-			rootPos.Y.Offset + rootSize.Y.Offset / 2
-		)
-	end
-
 	SizeMotor:onStep(function(values)
 		Window.Root.Size = UDim2.new(0, values.X, 0, values.Y)
-		SyncMainNeonGlow()
 	end)
 
 	PosMotor:onStep(function(values)
 		Window.Root.Position = UDim2.new(0, values.X, 0, values.Y)
-		SyncMainNeonGlow()
 	end)
 
 	local SelectorInset = Layout.SelectorInset
@@ -2645,9 +2604,6 @@ end)
 	function Window:Minimize()
 		Window.Minimized = not Window.Minimized
 		Window.Root.Visible = not Window.Minimized
-		if Window.MainNeonGlow then
-			Window.MainNeonGlow.Visible = not Window.Minimized
-		end
 
 		if Window.CloseUIShadow then
 			Window.CloseUIShadow.Visible = Window.Minimized
@@ -2803,7 +2759,6 @@ end)
 		Creator.AddSignal(Window.HideButton.TouchTap, function()
 			Window.Minimized = not Window.Minimized
        			Window.Root.Visible = not Window.Minimized
-			if Window.MainNeonGlow then Window.MainNeonGlow.Visible = not Window.Minimized end
 			local Icon = Config.Mobile.GetIcon(Window.Minimized)
 			Window.HideButton.Image = Icon.Image
 			Window.HideButton.ImageRectOffset = Icon.ImageRectOffset
@@ -2813,15 +2768,10 @@ end)
 		Creator.AddSignal(Window.HideButton.MouseButton1Click, function()
 			Window.Minimized = not Window.Minimized
        			Window.Root.Visible = not Window.Minimized
-			if Window.MainNeonGlow then Window.MainNeonGlow.Visible = not Window.Minimized end
 		end)
 	end
 
 	function Window:Destroy()
-		if Window.MainNeonGlow then
-			Window.MainNeonGlow:Destroy()
-		end
-
 		if Window.CloseUIShadow then
 			Window.CloseUIShadow:Destroy()
 		end
