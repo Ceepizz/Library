@@ -2099,9 +2099,11 @@ return function(Config)
 	--// ============================================================
 
 	local NEON_GRADIENT = ColorSequence.new({
-		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(108, 30, 210)),
+		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(120, 45, 235)),
+		ColorSequenceKeypoint.new(0.28, Color3.fromRGB(165, 82, 255)),
 		ColorSequenceKeypoint.new(0.50, Color3.fromRGB(205, 0, 255)),
-		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(145, 70, 255)),
+		ColorSequenceKeypoint.new(0.72, Color3.fromRGB(165, 82, 255)),
+		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(120, 45, 235)),
 	})
 
 	Window.Root = New("Frame", {
@@ -2134,7 +2136,7 @@ return function(Config)
 
 	Window.NeonGradient = New("UIGradient", {
 		Color = NEON_GRADIENT,
-		Rotation = 0,
+		Rotation = 45,
 		Parent = Window.NeonStroke,
 	})
 
@@ -2354,7 +2356,7 @@ end)
 
 	Window.FloatingNeonGradient = New("UIGradient", {
 		Color = NEON_GRADIENT,
-		Rotation = 0,
+		Rotation = 45,
 		Parent = Window.FloatingNeonStroke,
 	})
 
