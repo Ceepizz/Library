@@ -2098,7 +2098,11 @@ return function(Config)
 	--// version with a little transparency for a clean soft-glow look.
 	--// ============================================================
 
-	local NEON_STROKE = Color3.fromRGB(205, 0, 255)
+	local NEON_GRADIENT = ColorSequence.new({
+		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(108, 30, 210)),
+		ColorSequenceKeypoint.new(0.50, Color3.fromRGB(205, 0, 255)),
+		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(145, 70, 255)),
+	})
 
 	Window.Root = New("Frame", {
 		Active = true,
@@ -2124,8 +2128,14 @@ return function(Config)
 		LineJoinMode = Enum.LineJoinMode.Round,
 		Thickness = 3.1,
 		Transparency = 0.5,
-		Color = NEON_STROKE,
+		Color = Color3.new(1, 1, 1),
 		Parent = Window.Root,
+	})
+
+	Window.NeonGradient = New("UIGradient", {
+		Color = NEON_GRADIENT,
+		Rotation = 0,
+		Parent = Window.NeonStroke,
 	})
 
 local AccountInfo = Instance.new("Frame")
@@ -2338,8 +2348,14 @@ end)
 		LineJoinMode = Enum.LineJoinMode.Round,
 		Thickness = 2.8,
 		Transparency = 0.5,
-		Color = NEON_STROKE,
+		Color = Color3.new(1, 1, 1),
 		Parent = FloatingLogoBackground,
+	})
+
+	Window.FloatingNeonGradient = New("UIGradient", {
+		Color = NEON_GRADIENT,
+		Rotation = 0,
+		Parent = Window.FloatingNeonStroke,
 	})
 
 	Window.CloseUIShadow = New("ImageButton", {
