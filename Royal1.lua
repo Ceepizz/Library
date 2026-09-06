@@ -2093,20 +2093,35 @@ return function(Config)
 	})
 
 	--// ============================================================
-	--// SINGLE-LAYER NEON GRADIENT WINDOW OUTLINE
-	--// One UIStroke only: bright enough to read as neon without
-	--// the stacked bloom rings from the previous version.
+	--// SINGLE-LAYER TRAVELING NEON BORDER
+	--// One UIStroke + one UIGradient. A narrow bright "hot spot"
+	--// rotates around the border to create a clockwise neon sweep.
 	--// ============================================================
 
 	local RunService = game:GetService("RunService")
 
+	-- Most of the border stays purple while this narrow pink/white
+	-- section becomes the moving glow highlight.
 	local NeonGradientColors = ColorSequence.new({
-		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(115, 35, 255)),
-		ColorSequenceKeypoint.new(0.18, Color3.fromRGB(205, 48, 255)),
-		ColorSequenceKeypoint.new(0.38, Color3.fromRGB(255, 72, 220)),
-		ColorSequenceKeypoint.new(0.58, Color3.fromRGB(188, 45, 255)),
-		ColorSequenceKeypoint.new(0.78, Color3.fromRGB(100, 70, 255)),
-		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(115, 35, 255)),
+		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(92, 24, 190)),
+		ColorSequenceKeypoint.new(0.34, Color3.fromRGB(118, 30, 230)),
+		ColorSequenceKeypoint.new(0.43, Color3.fromRGB(210, 48, 255)),
+		ColorSequenceKeypoint.new(0.50, Color3.fromRGB(255, 205, 255)),
+		ColorSequenceKeypoint.new(0.57, Color3.fromRGB(255, 68, 226)),
+		ColorSequenceKeypoint.new(0.66, Color3.fromRGB(125, 35, 235)),
+		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(92, 24, 190)),
+	})
+
+	-- Dim the normal border slightly and let the moving center glow
+	-- become much brighter. This is still only a SINGLE stroke layer.
+	local NeonGradientTransparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0.00, 0.28),
+		NumberSequenceKeypoint.new(0.34, 0.24),
+		NumberSequenceKeypoint.new(0.43, 0.08),
+		NumberSequenceKeypoint.new(0.50, 0.00),
+		NumberSequenceKeypoint.new(0.57, 0.08),
+		NumberSequenceKeypoint.new(0.66, 0.24),
+		NumberSequenceKeypoint.new(1.00, 0.28),
 	})
 
 	Window.Root = New("Frame", {
@@ -2115,9 +2130,11 @@ return function(Config)
 		Size = Window.Size,
 		Position = Window.Position,
 		Parent = Config.Parent,
-		-- Keep Fluent's acrylic/background pieces inside the window.
 		ClipsDescendants = true,
 	}, {
+		New("UICorner", {
+			CornerRadius = UDim.new(0, 9),
+		}),
 		Window.AcrylicPaint.Frame,
 		Window.TabDisplay,
 		Window.ContainerCanvas,
@@ -2125,47 +2142,37 @@ return function(Config)
 		ResizeStartFrame,
 	})
 
-	-- One single stroke does both jobs: visible outline + soft-ish neon edge.
-	-- The extra thickness gives the color enough presence without creating
-	-- multiple separate glow rings.
 	Window.NeonStroke = New("UIStroke", {
 		Name = "NeonStroke",
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		LineJoinMode = Enum.LineJoinMode.Round,
 		Thickness = 4.5,
-		Transparency = 0.14,
+		Transparency = 0.05,
 		Color = Color3.new(1, 1, 1),
-		-- Attach to the outer window, not the Acrylic frame, so the
-		-- acrylic can stay clipped while the border remains clean.
 		Parent = Window.Root,
 	})
 
 	Window.NeonGradient = New("UIGradient", {
 		Color = NeonGradientColors,
+		Transparency = NeonGradientTransparency,
 		Rotation = 0,
 		Parent = Window.NeonStroke,
 	})
 
-	-- Animate the gradient slowly and breathe the transparency very slightly.
-	-- Still only ONE visible stroke layer.
+	-- Clockwise traveling glow. 60 degrees/second = one full sweep
+	-- every 6 seconds. Increase this number for a faster rotation.
 	local NeonRotation = 0
-	local NeonClock = 0
+	local NeonDegreesPerSecond = 60
 
 	Creator.AddSignal(RunService.RenderStepped, function(DeltaTime)
 		if not Window.Root or not Window.Root.Parent then
 			return
 		end
 
-		NeonRotation = (NeonRotation + DeltaTime * 18) % 360
-		NeonClock += DeltaTime
+		NeonRotation = (NeonRotation + DeltaTime * NeonDegreesPerSecond) % 360
 
 		if Window.NeonGradient and Window.NeonGradient.Parent then
 			Window.NeonGradient.Rotation = NeonRotation
-		end
-
-		if Window.NeonStroke and Window.NeonStroke.Parent then
-			local Breath = (math.sin(NeonClock * 2.0) + 1) * 0.5
-			Window.NeonStroke.Transparency = 0.12 + Breath * 0.08
 		end
 	end)
 
