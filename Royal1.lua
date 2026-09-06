@@ -2093,35 +2093,46 @@ return function(Config)
 	})
 
 	--// ============================================================
-	--// SINGLE-LAYER TRAVELING NEON BORDER
-	--// One UIStroke + one UIGradient. A narrow bright "hot spot"
-	--// rotates around the border to create a clockwise neon sweep.
+	--// ONE CLEAN ROTATING NEON SWEEP
+	--// The old rotating UIGradient creates two opposite highlights.
+	--// Keep the neon border itself steady, then move ONE soft streak
+	--// around the rounded perimeter. No second/opposite glow.
 	--// ============================================================
 
 	local RunService = game:GetService("RunService")
 
-	-- Most of the border stays purple while this narrow pink/white
-	-- section becomes the moving glow highlight.
+	-- Steady neon-purple border. No baked-in white hotspot here,
+	-- otherwise it would look like a second glow while the streak moves.
 	local NeonGradientColors = ColorSequence.new({
 		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(92, 24, 190)),
-		ColorSequenceKeypoint.new(0.34, Color3.fromRGB(118, 30, 230)),
-		ColorSequenceKeypoint.new(0.43, Color3.fromRGB(210, 48, 255)),
-		ColorSequenceKeypoint.new(0.50, Color3.fromRGB(255, 205, 255)),
-		ColorSequenceKeypoint.new(0.57, Color3.fromRGB(255, 68, 226)),
-		ColorSequenceKeypoint.new(0.66, Color3.fromRGB(125, 35, 235)),
+		ColorSequenceKeypoint.new(0.50, Color3.fromRGB(176, 42, 255)),
 		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(92, 24, 190)),
 	})
 
-	-- Dim the normal border slightly and let the moving center glow
-	-- become much brighter. This is still only a SINGLE stroke layer.
 	local NeonGradientTransparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0.00, 0.28),
-		NumberSequenceKeypoint.new(0.34, 0.24),
-		NumberSequenceKeypoint.new(0.43, 0.08),
+		NumberSequenceKeypoint.new(0.00, 0.20),
+		NumberSequenceKeypoint.new(0.50, 0.06),
+		NumberSequenceKeypoint.new(1.00, 0.20),
+	})
+
+	-- This gradient belongs to the ONE moving streak. The ends are fully
+	-- transparent so it looks like a neon sweep, not a solid rectangle.
+	local SweepColors = ColorSequence.new({
+		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(122, 30, 235)),
+		ColorSequenceKeypoint.new(0.36, Color3.fromRGB(226, 58, 255)),
+		ColorSequenceKeypoint.new(0.50, Color3.fromRGB(255, 225, 255)),
+		ColorSequenceKeypoint.new(0.64, Color3.fromRGB(255, 70, 224)),
+		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(122, 30, 235)),
+	})
+
+	local SweepTransparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0.00, 1.00),
+		NumberSequenceKeypoint.new(0.18, 0.86),
+		NumberSequenceKeypoint.new(0.38, 0.28),
 		NumberSequenceKeypoint.new(0.50, 0.00),
-		NumberSequenceKeypoint.new(0.57, 0.08),
-		NumberSequenceKeypoint.new(0.66, 0.24),
-		NumberSequenceKeypoint.new(1.00, 0.28),
+		NumberSequenceKeypoint.new(0.62, 0.28),
+		NumberSequenceKeypoint.new(0.82, 0.86),
+		NumberSequenceKeypoint.new(1.00, 1.00),
 	})
 
 	Window.Root = New("Frame", {
@@ -2159,25 +2170,127 @@ return function(Config)
 		Parent = Window.NeonStroke,
 	})
 
-	-- Clockwise traveling glow. 60 degrees/second = one full sweep
-	-- every 6 seconds. Increase this number for a faster rotation.
-	local NeonRotation = 0
-	local NeonDegreesPerSecond = 60
+	-- One thin streak only. It is a filled line with transparent tails,
+	-- not a UIStroke around a little box (that was the ugly v13 block).
+	Window.NeonRunner = New("Frame", {
+		Name = "NeonRunner",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0.02,
+		BorderSizePixel = 0,
+		Size = UDim2.fromOffset(52, 4),
+		ZIndex = 500,
+		Active = false,
+		Parent = Config.Parent,
+	}, {
+		New("UICorner", {
+			CornerRadius = UDim.new(1, 0),
+		}),
+		New("UIGradient", {
+			Color = SweepColors,
+			Transparency = SweepTransparency,
+			Rotation = 0,
+		}),
+	})
+
+	local function RoundedRectPoint(Width, Height, Radius, Phase)
+		Width = math.max(tonumber(Width) or 0, 1)
+		Height = math.max(tonumber(Height) or 0, 1)
+		Radius = math.clamp(tonumber(Radius) or 0, 0, math.min(Width, Height) * 0.5)
+		Phase = (tonumber(Phase) or 0) % 1
+
+		local Horizontal = math.max(Width - Radius * 2, 0)
+		local Vertical = math.max(Height - Radius * 2, 0)
+		local Arc = math.pi * Radius * 0.5
+		local Perimeter = Horizontal * 2 + Vertical * 2 + Arc * 4
+
+		if Perimeter <= 0 then
+			return Width * 0.5, Height * 0.5, 0
+		end
+
+		local Distance = Phase * Perimeter
+
+		if Distance <= Horizontal then
+			return Radius + Distance, 0, 0
+		end
+		Distance -= Horizontal
+
+		if Distance <= Arc and Radius > 0 then
+			local Angle = -math.pi * 0.5 + Distance / Radius
+			return Width - Radius + math.cos(Angle) * Radius,
+				Radius + math.sin(Angle) * Radius,
+				math.deg(Angle + math.pi * 0.5)
+		end
+		Distance -= Arc
+
+		if Distance <= Vertical then
+			return Width, Radius + Distance, 90
+		end
+		Distance -= Vertical
+
+		if Distance <= Arc and Radius > 0 then
+			local Angle = Distance / Radius
+			return Width - Radius + math.cos(Angle) * Radius,
+				Height - Radius + math.sin(Angle) * Radius,
+				math.deg(Angle + math.pi * 0.5)
+		end
+		Distance -= Arc
+
+		if Distance <= Horizontal then
+			return Width - Radius - Distance, Height, 180
+		end
+		Distance -= Horizontal
+
+		if Distance <= Arc and Radius > 0 then
+			local Angle = math.pi * 0.5 + Distance / Radius
+			return Radius + math.cos(Angle) * Radius,
+				Height - Radius + math.sin(Angle) * Radius,
+				math.deg(Angle + math.pi * 0.5)
+		end
+		Distance -= Arc
+
+		if Distance <= Vertical then
+			return 0, Height - Radius - Distance, 270
+		end
+		Distance -= Vertical
+
+		if Radius > 0 then
+			local Angle = math.pi + Distance / Radius
+			return Radius + math.cos(Angle) * Radius,
+				Radius + math.sin(Angle) * Radius,
+				math.deg(Angle + math.pi * 0.5)
+		end
+
+		return 0, 0, 0
+	end
+
+	local NeonPhase = 0
+	local NeonLapSeconds = 6
 
 	Creator.AddSignal(RunService.RenderStepped, function(DeltaTime)
 		if not Window.Root or not Window.Root.Parent then
 			return
 		end
 
-		NeonRotation = (NeonRotation + DeltaTime * NeonDegreesPerSecond) % 360
+		NeonPhase = (NeonPhase + DeltaTime / NeonLapSeconds) % 1
 
-		if Window.NeonGradient and Window.NeonGradient.Parent then
-			Window.NeonGradient.Rotation = NeonRotation
+		if Window.NeonRunner and Window.NeonRunner.Parent then
+			local Size = Window.Root.AbsoluteSize
+			local Pos = Window.Root.AbsolutePosition
+			local X, Y, Rotation = RoundedRectPoint(Size.X, Size.Y, 9, NeonPhase)
+
+			Window.NeonRunner.Visible = Window.Root.Visible
+			Window.NeonRunner.Position = UDim2.fromOffset(Pos.X + X, Pos.Y + Y)
+			Window.NeonRunner.Rotation = Rotation
 		end
 
-		-- Keep the floating icon glow perfectly synced with the main window.
-		if Window.FloatingNeonGradient and Window.FloatingNeonGradient.Parent then
-			Window.FloatingNeonGradient.Rotation = NeonRotation
+		if Window.FloatingNeonRunner and Window.FloatingNeonRunner.Parent then
+			local Parent = Window.FloatingNeonRunner.Parent
+			local Size = Parent.AbsoluteSize
+			local X, Y, Rotation = RoundedRectPoint(Size.X, Size.Y, 8, NeonPhase)
+
+			Window.FloatingNeonRunner.Position = UDim2.fromOffset(X, Y)
+			Window.FloatingNeonRunner.Rotation = Rotation
 		end
 	end)
 
@@ -2384,9 +2497,7 @@ end)
 		FloatingLogoImage,
 	})
 
-	--// FLOATING ICON TRAVELING NEON BORDER
-	--// Uses the exact same single-stroke gradient as the main window
-	--// and shares its rotation so both sweeps stay synchronized.
+	--// FLOATING ICON: SAME ONE-CLEAN-SWEEP EFFECT
 	Window.FloatingNeonStroke = New("UIStroke", {
 		Name = "FloatingNeonStroke",
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
@@ -2400,8 +2511,29 @@ end)
 	Window.FloatingNeonGradient = New("UIGradient", {
 		Color = NeonGradientColors,
 		Transparency = NeonGradientTransparency,
-		Rotation = NeonRotation,
+		Rotation = 0,
 		Parent = Window.FloatingNeonStroke,
+	})
+
+	Window.FloatingNeonRunner = New("Frame", {
+		Name = "FloatingNeonRunner",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0.02,
+		BorderSizePixel = 0,
+		Size = UDim2.fromOffset(18, 3),
+		ZIndex = 205,
+		Active = false,
+		Parent = FloatingLogoBackground,
+	}, {
+		New("UICorner", {
+			CornerRadius = UDim.new(1, 0),
+		}),
+		New("UIGradient", {
+			Color = SweepColors,
+			Transparency = SweepTransparency,
+			Rotation = 0,
+		}),
 	})
 
 	Window.CloseUIShadow = New("ImageButton", {
