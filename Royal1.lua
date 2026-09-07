@@ -2374,10 +2374,10 @@ task.spawn(function()
     while AccountInfo.Parent do
         if IsPremium() then
             -- Keep the label readable, but make the Premium value gold.
-            TypeLabel.Text = 'Type: <font color="rgb(255,200,70)"><b>Premium</b></font>'
+            TypeLabel.Text = '<font color="rgb(255,200,70)"><b>Premium</b></font>'
             TypeLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
         else
-            TypeLabel.Text = "Type: Standard"
+            TypeLabel.Text = "Standard"
             TypeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
         end
 
