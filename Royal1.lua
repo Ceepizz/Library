@@ -2101,18 +2101,25 @@ return function(Config)
 
 	local RunService = game:GetService("RunService")
 
-	-- Steady neon-purple border. No baked-in white hotspot here,
-	-- otherwise it would look like a second glow while the streak moves.
+	-- Hat-style neon rim:
+	-- deep purple -> electric violet -> pink/white hotspot -> violet.
+	-- The soft halo is separate, so this stroke can stay crisp.
 	local NeonGradientColors = ColorSequence.new({
-		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(92, 24, 190)),
-		ColorSequenceKeypoint.new(0.50, Color3.fromRGB(176, 42, 255)),
-		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(92, 24, 190)),
+		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(82, 18, 180)),
+		ColorSequenceKeypoint.new(0.22, Color3.fromRGB(137, 28, 255)),
+		ColorSequenceKeypoint.new(0.46, Color3.fromRGB(226, 58, 255)),
+		ColorSequenceKeypoint.new(0.52, Color3.fromRGB(255, 232, 255)),
+		ColorSequenceKeypoint.new(0.60, Color3.fromRGB(235, 72, 255)),
+		ColorSequenceKeypoint.new(0.78, Color3.fromRGB(152, 34, 255)),
+		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(82, 18, 180)),
 	})
 
 	local NeonGradientTransparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0.00, 0.20),
-		NumberSequenceKeypoint.new(0.50, 0.06),
-		NumberSequenceKeypoint.new(1.00, 0.20),
+		NumberSequenceKeypoint.new(0.00, 0.10),
+		NumberSequenceKeypoint.new(0.30, 0.02),
+		NumberSequenceKeypoint.new(0.52, 0.00),
+		NumberSequenceKeypoint.new(0.72, 0.02),
+		NumberSequenceKeypoint.new(1.00, 0.10),
 	})
 
 	-- This gradient belongs to the ONE moving streak. The ends are fully
@@ -2135,6 +2142,54 @@ return function(Config)
 		NumberSequenceKeypoint.new(1.00, 1.00),
 	})
 
+	-- Soft purple halo behind the window. This is what gives the
+	-- outline the same "lit from the edge" look as the neon hat.
+	local NeonGlowTexture = "rbxassetid://8992230677"
+	local NeonOuterExtra = 84
+	local NeonInnerExtra = 46
+
+	local function CreateNeonHalo(Name, Extra, Color, Transparency)
+		return New("ImageLabel", {
+			Name = Name,
+			AnchorPoint = Vector2.new(0, 0),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			Position = UDim2.new(
+				Window.Position.X.Scale,
+				Window.Position.X.Offset - Extra / 2,
+				Window.Position.Y.Scale,
+				Window.Position.Y.Offset - Extra / 2
+			),
+			Size = UDim2.new(
+				Window.Size.X.Scale,
+				Window.Size.X.Offset + Extra,
+				Window.Size.Y.Scale,
+				Window.Size.Y.Offset + Extra
+			),
+			Image = NeonGlowTexture,
+			ImageColor3 = Color,
+			ImageTransparency = Transparency,
+			ScaleType = Enum.ScaleType.Slice,
+			SliceCenter = Rect.new(99, 99, 99, 99),
+			Active = false,
+			Parent = Config.Parent,
+		})
+	end
+
+	Window.NeonGlowOuter = CreateNeonHalo(
+		"NeonGlowOuter",
+		NeonOuterExtra,
+		Color3.fromRGB(126, 24, 255),
+		0.52
+	)
+
+	Window.NeonGlowInner = CreateNeonHalo(
+		"NeonGlowInner",
+		NeonInnerExtra,
+		Color3.fromRGB(224, 54, 255),
+		0.40
+	)
+
 	Window.Root = New("Frame", {
 		Active = true,
 		BackgroundTransparency = 1,
@@ -2153,12 +2208,13 @@ return function(Config)
 		ResizeStartFrame,
 	})
 
+	-- Crisp luminous edge sitting on top of the soft halo.
 	Window.NeonStroke = New("UIStroke", {
 		Name = "NeonStroke",
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		LineJoinMode = Enum.LineJoinMode.Round,
-		Thickness = 4.5,
-		Transparency = 0.05,
+		Thickness = 2.75,
+		Transparency = 0,
 		Color = Color3.new(1, 1, 1),
 		Parent = Window.Root,
 	})
@@ -2273,6 +2329,14 @@ return function(Config)
 		end
 
 		NeonPhase = (NeonPhase + DeltaTime / NeonLapSeconds) % 1
+
+		-- Keep the sibling halo in sync with the main window visibility.
+		if Window.NeonGlowOuter and Window.NeonGlowOuter.Parent then
+			Window.NeonGlowOuter.Visible = Window.Root.Visible
+		end
+		if Window.NeonGlowInner and Window.NeonGlowInner.Parent then
+			Window.NeonGlowInner.Visible = Window.Root.Visible
+		end
 
 		if Window.NeonRunner and Window.NeonRunner.Parent then
 			local Size = Window.Root.AbsoluteSize
@@ -2494,16 +2558,30 @@ end)
 		New("UICorner", {
 			CornerRadius = UDim.new(0, 8),
 		}),
+		New("ImageLabel", {
+			Name = "FloatingNeonHalo",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.new(1, 34, 1, 34),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			Image = NeonGlowTexture,
+			ImageColor3 = Color3.fromRGB(198, 42, 255),
+			ImageTransparency = 0.42,
+			ScaleType = Enum.ScaleType.Slice,
+			SliceCenter = Rect.new(99, 99, 99, 99),
+			ZIndex = 201,
+		}),
 		FloatingLogoImage,
 	})
 
-	--// FLOATING ICON: SAME ONE-CLEAN-SWEEP EFFECT
+	--// FLOATING ICON: SAME HAT-STYLE NEON RIM + SINGLE SWEEP
 	Window.FloatingNeonStroke = New("UIStroke", {
 		Name = "FloatingNeonStroke",
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		LineJoinMode = Enum.LineJoinMode.Round,
-		Thickness = 3.5,
-		Transparency = 0.03,
+		Thickness = 2.5,
+		Transparency = 0,
 		Color = Color3.new(1, 1, 1),
 		Parent = FloatingLogoBackground,
 	})
@@ -2582,12 +2660,41 @@ end)
 	Window.ContainerBackMotor = Flipper.SingleMotor.new(0)
 	Window.ContainerPosMotor = Flipper.SingleMotor.new(94)
 
+	local function SyncMainNeonHalo()
+		local CurrentSize = SizeMotor:getValue()
+		local CurrentPos = PosMotor:getValue()
+
+		if Window.NeonGlowOuter and Window.NeonGlowOuter.Parent then
+			Window.NeonGlowOuter.Position = UDim2.fromOffset(
+				CurrentPos.X - NeonOuterExtra / 2,
+				CurrentPos.Y - NeonOuterExtra / 2
+			)
+			Window.NeonGlowOuter.Size = UDim2.fromOffset(
+				CurrentSize.X + NeonOuterExtra,
+				CurrentSize.Y + NeonOuterExtra
+			)
+		end
+
+		if Window.NeonGlowInner and Window.NeonGlowInner.Parent then
+			Window.NeonGlowInner.Position = UDim2.fromOffset(
+				CurrentPos.X - NeonInnerExtra / 2,
+				CurrentPos.Y - NeonInnerExtra / 2
+			)
+			Window.NeonGlowInner.Size = UDim2.fromOffset(
+				CurrentSize.X + NeonInnerExtra,
+				CurrentSize.Y + NeonInnerExtra
+			)
+		end
+	end
+
 	SizeMotor:onStep(function(values)
 		Window.Root.Size = UDim2.new(0, values.X, 0, values.Y)
+		SyncMainNeonHalo()
 	end)
 
 	PosMotor:onStep(function(values)
 		Window.Root.Position = UDim2.new(0, values.X, 0, values.Y)
+		SyncMainNeonHalo()
 	end)
 
 	local SelectorInset = Layout.SelectorInset
@@ -2926,6 +3033,17 @@ end)
 	function Window:Destroy()
 		if Window.CloseUIShadow then
 			Window.CloseUIShadow:Destroy()
+		end
+
+		-- These are siblings of Window.Root, so clean them up explicitly.
+		if Window.NeonRunner then
+			Window.NeonRunner:Destroy()
+		end
+		if Window.NeonGlowOuter then
+			Window.NeonGlowOuter:Destroy()
+		end
+		if Window.NeonGlowInner then
+			Window.NeonGlowInner:Destroy()
 		end
 
 		if Library.UseAcrylic then
