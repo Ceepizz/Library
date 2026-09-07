@@ -4164,6 +4164,25 @@ ToggleFrame.DescLabel.Size = UDim2.new(1, -54, 0, 14)
 		},
 	})
 
+	-- Neon glow layers for enabled toggles. They stay invisible while OFF.
+	local ToggleGlowOuter = New("UIStroke", {
+		Name = "ToggleGlowOuter",
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Thickness = 7,
+		Transparency = 1,
+		Color = Color3.fromRGB(126, 24, 255),
+	})
+
+	local ToggleGlowInner = New("UIStroke", {
+		Name = "ToggleGlowInner",
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Thickness = 4,
+		Transparency = 1,
+		Color = Color3.fromRGB(226, 58, 255),
+	})
+
 	local ToggleSlider = New("Frame", {
 		Size = UDim2.fromOffset(36, 18),
 		AnchorPoint = Vector2.new(1, 0.5),
@@ -4177,6 +4196,8 @@ ToggleFrame.DescLabel.Size = UDim2.new(1, -54, 0, 14)
 		New("UICorner", {
 			CornerRadius = UDim.new(0, 9),
 		}),
+		ToggleGlowOuter,
+		ToggleGlowInner,
 		ToggleBorder,
 		ToggleCircle,
 	}) :: Frame
@@ -4206,6 +4227,19 @@ ToggleFrame.DescLabel.Size = UDim2.new(1, -54, 0, 14)
 			ToggleSlider,
 			TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
 			{ BackgroundTransparency = Toggle.Value and 0 or 1 }
+		):Play()
+
+		-- Fade the neon aura in only while the toggle is enabled.
+		TweenService:Create(
+			ToggleGlowOuter,
+			TweenInfo.new(0.30, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
+			{ Transparency = Toggle.Value and 0.82 or 1 }
+		):Play()
+
+		TweenService:Create(
+			ToggleGlowInner,
+			TweenInfo.new(0.30, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
+			{ Transparency = Toggle.Value and 0.58 or 1 }
 		):Play()
 
 		ToggleCircle.ImageTransparency = Toggle.Value and 0 or 0.5
