@@ -2099,7 +2099,6 @@ return function(Config)
 	--// around the rounded perimeter. No second/opposite glow.
 	--// ============================================================
 
-	local RunService = game:GetService("RunService")
 
 	-- Hat-style neon rim:
 	-- deep purple -> electric violet -> pink/white hotspot -> violet.
@@ -2120,26 +2119,6 @@ return function(Config)
 		NumberSequenceKeypoint.new(0.52, 0.00),
 		NumberSequenceKeypoint.new(0.72, 0.02),
 		NumberSequenceKeypoint.new(1.00, 0.10),
-	})
-
-	-- This gradient belongs to the ONE moving streak. The ends are fully
-	-- transparent so it looks like a neon sweep, not a solid rectangle.
-	local SweepColors = ColorSequence.new({
-		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(122, 30, 235)),
-		ColorSequenceKeypoint.new(0.36, Color3.fromRGB(226, 58, 255)),
-		ColorSequenceKeypoint.new(0.50, Color3.fromRGB(255, 225, 255)),
-		ColorSequenceKeypoint.new(0.64, Color3.fromRGB(255, 70, 224)),
-		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(122, 30, 235)),
-	})
-
-	local SweepTransparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0.00, 1.00),
-		NumberSequenceKeypoint.new(0.18, 0.86),
-		NumberSequenceKeypoint.new(0.38, 0.28),
-		NumberSequenceKeypoint.new(0.50, 0.00),
-		NumberSequenceKeypoint.new(0.62, 0.28),
-		NumberSequenceKeypoint.new(0.82, 0.86),
-		NumberSequenceKeypoint.new(1.00, 1.00),
 	})
 
 	-- Soft purple halo behind the window. This is what gives the
@@ -2208,6 +2187,28 @@ return function(Config)
 		ResizeStartFrame,
 	})
 
+	-- Extra all-around glow strokes so the left/right edges glow as much as
+	-- the top/bottom. These sit under the crisp neon border.
+	Window.NeonStrokeGlowOuter = New("UIStroke", {
+		Name = "NeonStrokeGlowOuter",
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Thickness = 12,
+		Transparency = 0.88,
+		Color = Color3.fromRGB(125, 24, 255),
+		Parent = Window.Root,
+	})
+
+	Window.NeonStrokeGlowInner = New("UIStroke", {
+		Name = "NeonStrokeGlowInner",
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Thickness = 7,
+		Transparency = 0.74,
+		Color = Color3.fromRGB(226, 58, 255),
+		Parent = Window.Root,
+	})
+
 	-- Crisp luminous edge sitting on top of the soft halo.
 	Window.NeonStroke = New("UIStroke", {
 		Name = "NeonStroke",
@@ -2226,137 +2227,20 @@ return function(Config)
 		Parent = Window.NeonStroke,
 	})
 
-	-- One thin streak only. It is a filled line with transparent tails,
-	-- not a UIStroke around a little box (that was the ugly v13 block).
-	Window.NeonRunner = New("Frame", {
-		Name = "NeonRunner",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = 0.02,
-		BorderSizePixel = 0,
-		Size = UDim2.fromOffset(52, 4),
-		ZIndex = 500,
-		Active = false,
-		Parent = Config.Parent,
-	}, {
-		New("UICorner", {
-			CornerRadius = UDim.new(1, 0),
-		}),
-		New("UIGradient", {
-			Color = SweepColors,
-			Transparency = SweepTransparency,
-			Rotation = 0,
-		}),
-	})
+	local function SyncNeonVisibility()
+		local Visible = Window.Root.Visible
 
-	local function RoundedRectPoint(Width, Height, Radius, Phase)
-		Width = math.max(tonumber(Width) or 0, 1)
-		Height = math.max(tonumber(Height) or 0, 1)
-		Radius = math.clamp(tonumber(Radius) or 0, 0, math.min(Width, Height) * 0.5)
-		Phase = (tonumber(Phase) or 0) % 1
-
-		local Horizontal = math.max(Width - Radius * 2, 0)
-		local Vertical = math.max(Height - Radius * 2, 0)
-		local Arc = math.pi * Radius * 0.5
-		local Perimeter = Horizontal * 2 + Vertical * 2 + Arc * 4
-
-		if Perimeter <= 0 then
-			return Width * 0.5, Height * 0.5, 0
+		if Window.NeonGlowOuter and Window.NeonGlowOuter.Parent then
+			Window.NeonGlowOuter.Visible = Visible
 		end
 
-		local Distance = Phase * Perimeter
-
-		if Distance <= Horizontal then
-			return Radius + Distance, 0, 0
+		if Window.NeonGlowInner and Window.NeonGlowInner.Parent then
+			Window.NeonGlowInner.Visible = Visible
 		end
-		Distance -= Horizontal
-
-		if Distance <= Arc and Radius > 0 then
-			local Angle = -math.pi * 0.5 + Distance / Radius
-			return Width - Radius + math.cos(Angle) * Radius,
-				Radius + math.sin(Angle) * Radius,
-				math.deg(Angle + math.pi * 0.5)
-		end
-		Distance -= Arc
-
-		if Distance <= Vertical then
-			return Width, Radius + Distance, 90
-		end
-		Distance -= Vertical
-
-		if Distance <= Arc and Radius > 0 then
-			local Angle = Distance / Radius
-			return Width - Radius + math.cos(Angle) * Radius,
-				Height - Radius + math.sin(Angle) * Radius,
-				math.deg(Angle + math.pi * 0.5)
-		end
-		Distance -= Arc
-
-		if Distance <= Horizontal then
-			return Width - Radius - Distance, Height, 180
-		end
-		Distance -= Horizontal
-
-		if Distance <= Arc and Radius > 0 then
-			local Angle = math.pi * 0.5 + Distance / Radius
-			return Radius + math.cos(Angle) * Radius,
-				Height - Radius + math.sin(Angle) * Radius,
-				math.deg(Angle + math.pi * 0.5)
-		end
-		Distance -= Arc
-
-		if Distance <= Vertical then
-			return 0, Height - Radius - Distance, 270
-		end
-		Distance -= Vertical
-
-		if Radius > 0 then
-			local Angle = math.pi + Distance / Radius
-			return Radius + math.cos(Angle) * Radius,
-				Radius + math.sin(Angle) * Radius,
-				math.deg(Angle + math.pi * 0.5)
-		end
-
-		return 0, 0, 0
 	end
 
-	local NeonPhase = 0
-	local NeonLapSeconds = 6
-
-	Creator.AddSignal(RunService.RenderStepped, function(DeltaTime)
-		if not Window.Root or not Window.Root.Parent then
-			return
-		end
-
-		NeonPhase = (NeonPhase + DeltaTime / NeonLapSeconds) % 1
-
-		-- Keep the sibling halo in sync with the main window visibility.
-		if Window.NeonGlowOuter and Window.NeonGlowOuter.Parent then
-			Window.NeonGlowOuter.Visible = Window.Root.Visible
-		end
-		if Window.NeonGlowInner and Window.NeonGlowInner.Parent then
-			Window.NeonGlowInner.Visible = Window.Root.Visible
-		end
-
-		if Window.NeonRunner and Window.NeonRunner.Parent then
-			local Size = Window.Root.AbsoluteSize
-			local Pos = Window.Root.AbsolutePosition
-			local X, Y, Rotation = RoundedRectPoint(Size.X, Size.Y, 9, NeonPhase)
-
-			Window.NeonRunner.Visible = Window.Root.Visible
-			Window.NeonRunner.Position = UDim2.fromOffset(Pos.X + X, Pos.Y + Y)
-			Window.NeonRunner.Rotation = Rotation
-		end
-
-		if Window.FloatingNeonRunner and Window.FloatingNeonRunner.Parent then
-			local Parent = Window.FloatingNeonRunner.Parent
-			local Size = Parent.AbsoluteSize
-			local X, Y, Rotation = RoundedRectPoint(Size.X, Size.Y, 8, NeonPhase)
-
-			Window.FloatingNeonRunner.Position = UDim2.fromOffset(X, Y)
-			Window.FloatingNeonRunner.Rotation = Rotation
-		end
-	end)
+	SyncNeonVisibility()
+	Creator.AddSignal(Window.Root:GetPropertyChangedSignal("Visible"), SyncNeonVisibility)
 
 local AccountInfo = Instance.new("Frame")
 local AvatarFrame = Instance.new("Frame")
@@ -2575,7 +2459,27 @@ end)
 		FloatingLogoImage,
 	})
 
-	--// FLOATING ICON: SAME HAT-STYLE NEON RIM + SINGLE SWEEP
+	--// FLOATING ICON: SAME HAT-STYLE NEON RIM
+	Window.FloatingNeonStrokeGlowOuter = New("UIStroke", {
+		Name = "FloatingNeonStrokeGlowOuter",
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Thickness = 10,
+		Transparency = 0.88,
+		Color = Color3.fromRGB(125, 24, 255),
+		Parent = FloatingLogoBackground,
+	})
+
+	Window.FloatingNeonStrokeGlowInner = New("UIStroke", {
+		Name = "FloatingNeonStrokeGlowInner",
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Thickness = 6,
+		Transparency = 0.72,
+		Color = Color3.fromRGB(226, 58, 255),
+		Parent = FloatingLogoBackground,
+	})
+
 	Window.FloatingNeonStroke = New("UIStroke", {
 		Name = "FloatingNeonStroke",
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
@@ -2593,26 +2497,45 @@ end)
 		Parent = Window.FloatingNeonStroke,
 	})
 
-	Window.FloatingNeonRunner = New("Frame", {
-		Name = "FloatingNeonRunner",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = 0.02,
-		BorderSizePixel = 0,
-		Size = UDim2.fromOffset(18, 3),
-		ZIndex = 205,
-		Active = false,
-		Parent = FloatingLogoBackground,
-	}, {
-		New("UICorner", {
-			CornerRadius = UDim.new(1, 0),
-		}),
-		New("UIGradient", {
-			Color = SweepColors,
-			Transparency = SweepTransparency,
-			Rotation = 0,
-		}),
-	})
+
+	-- Pulse the neon every second: glow for 1 second, dim for 1 second.
+	Window.NeonPulseRunning = true
+
+	local NeonPulseTargets = {
+		{ Object = Window.NeonGlowOuter, Property = "ImageTransparency", Glow = 0.52, Dim = 0.88 },
+		{ Object = Window.NeonGlowInner, Property = "ImageTransparency", Glow = 0.40, Dim = 0.78 },
+		{ Object = Window.NeonStrokeGlowOuter, Property = "Transparency", Glow = 0.88, Dim = 0.96 },
+		{ Object = Window.NeonStrokeGlowInner, Property = "Transparency", Glow = 0.74, Dim = 0.90 },
+		{ Object = Window.NeonStroke, Property = "Transparency", Glow = 0.00, Dim = 0.38 },
+		{ Object = Window.FloatingNeonStrokeGlowOuter, Property = "Transparency", Glow = 0.88, Dim = 0.96 },
+		{ Object = Window.FloatingNeonStrokeGlowInner, Property = "Transparency", Glow = 0.72, Dim = 0.88 },
+		{ Object = Window.FloatingNeonStroke, Property = "Transparency", Glow = 0.00, Dim = 0.36 },
+	}
+
+	local function TweenNeonPulse(IsGlow)
+		for _, Entry in next, NeonPulseTargets do
+			local Target = Entry.Object
+			if Target and Target.Parent then
+				local GoalValue = IsGlow and Entry.Glow or Entry.Dim
+				pcall(function()
+					TweenService:Create(
+						Target,
+						TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+						{ [Entry.Property] = GoalValue }
+					):Play()
+				end)
+			end
+		end
+	end
+
+	task.spawn(function()
+		local IsGlow = false
+		while Window.NeonPulseRunning and Window.Root and Window.Root.Parent do
+			IsGlow = not IsGlow
+			TweenNeonPulse(IsGlow)
+			task.wait(1)
+		end
+	end)
 
 	Window.CloseUIShadow = New("ImageButton", {
 		Name = "CloseUIShadow",
@@ -3031,14 +2954,13 @@ end)
 	end
 
 	function Window:Destroy()
+		Window.NeonPulseRunning = false
+
 		if Window.CloseUIShadow then
 			Window.CloseUIShadow:Destroy()
 		end
 
 		-- These are siblings of Window.Root, so clean them up explicitly.
-		if Window.NeonRunner then
-			Window.NeonRunner:Destroy()
-		end
 		if Window.NeonGlowOuter then
 			Window.NeonGlowOuter:Destroy()
 		end
