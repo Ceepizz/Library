@@ -1848,6 +1848,7 @@ local Components = script.Parent
 
 local Library = require(Root)
 
+local TweenService = game:GetService("TweenService")
 local UserInputService = Library.Utilities:Clone(game:GetService("UserInputService"))
 local Mouse = Library.Utilities:Clone(game:GetService("Players")).LocalPlayer:GetMouse()
 local Camera = Library.Utilities:Clone(game:GetService("Workspace")).CurrentCamera
@@ -1901,13 +1902,10 @@ return function(Config)
 	local EdgeInset = 6
 	local LeftInset = 14
 	local RowHeight = 44
-	local SearchBoxSize = Horizontal and 34 or 28
-	local SearchRowWidth = 170
 
 	local function ComputeLayout(ForAlignment)
 		local IsHorizontal = ForAlignment == "Top" or ForAlignment == "Bottom"
 		local IsReversed = ForAlignment == "Right" or ForAlignment == "Bottom"
-		local BoxSize = IsHorizontal and 34 or 28
 
 		local TabFramePos, TabFrameSize
 		if IsHorizontal then
@@ -1945,14 +1943,13 @@ return function(Config)
 		return {
 			Horizontal = IsHorizontal,
 			Reversed = IsReversed,
-			SearchBoxSize = BoxSize,
 			TabFramePos = TabFramePos,
 			TabFrameSize = TabFrameSize,
 			TabDisplayPos = TabDisplayPos,
 			TabDisplaySize = TabDisplaySize,
 			ContainerPos = ContainerPos,
 			ContainerSize = ContainerSize,
-			SelectorInset = IsHorizontal and (SearchRowWidth + 10 + LeftInset) or (BoxSize + 4 + 17),
+			SelectorInset = IsHorizontal and LeftInset or 17,
 		}
 	end
 
@@ -1972,65 +1969,79 @@ return function(Config)
 	})
 
 	local ResizeStartFrame = New("Frame", {
+		Name = "ResizeHandle",
 		Active = true,
-		Size = UDim2.fromOffset(20, 20),
+		Size = UDim2.fromOffset(26, 26),
 		BackgroundTransparency = 1,
-		Position = UDim2.new(1, -20, 1, -20),
+		Position = UDim2.new(1, -26, 1, -26),
+		ZIndex = 550,
 	})
 
-	Window.TabSearchBox = New("TextBox", {
-		Size = Horizontal and UDim2.new(0, SearchRowWidth, 1, 0) or UDim2.new(1, -LeftInset, 0, Layout.SearchBoxSize),
-		AnchorPoint = Horizontal and Vector2.new(0, 0.5) or Vector2.new(0, 0),
-		Position = Horizontal and UDim2.new(0, LeftInset, 0.5, 0) or UDim2.fromOffset(LeftInset, 0),
-		BackgroundTransparency = 0.89,
-		BackgroundColor3 = Color3.fromRGB(130, 130, 130),
-		PlaceholderText = "Search",
-		ClearTextOnFocus = false,
-		FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json"),
-		TextSize = 12,
-		TextXAlignment = "Left",
-		ClipsDescendants = true,
-		ThemeTag = {
-			BackgroundColor3 = "Element",
-			TextColor3 = "Text",
-			PlaceholderColor3 = "SubText",
-		},
-	}, {
-		New("UICorner", {
-			CornerRadius = UDim.new(0, 6),
-		}),
-		New("UIStroke", {
-			Transparency = 0.5,
-			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+	-- Visible bottom-right resize grip so users know the window can be resized.
+	-- Three shiny diagonal bars sit inside the existing drag target.
+	local ResizeGrip = New("Frame", {
+		Name = "ResizeGrip",
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -3, 1, -3),
+		Size = UDim2.fromOffset(18, 18),
+		BackgroundTransparency = 1,
+		ZIndex = 551,
+		Parent = ResizeStartFrame,
+	})
+
+	local function CreateResizeGripLine(Name, Length, X, Y)
+		local Glow = New("Frame", {
+			Name = Name .. "Glow",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromOffset(X, Y),
+			Size = UDim2.fromOffset(Length + 3, 4),
+			Rotation = -45,
+			BorderSizePixel = 0,
+			BackgroundTransparency = 0.72,
+			ZIndex = 551,
 			ThemeTag = {
-				Color = "ElementBorder",
+				BackgroundColor3 = "Accent",
 			},
-		}),
-		New("UIPadding", {
-			PaddingLeft = UDim.new(0, 10),
-			PaddingRight = UDim.new(0, 10),
-		}),
-	})
+			Parent = ResizeGrip,
+		}, {
+			New("UICorner", {
+				CornerRadius = UDim.new(1, 0),
+			}),
+		})
 
-	Window.NoResultsLabel = New("TextLabel", {
-		Text = "No results found",
-		Visible = false,
-		FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json"),
-		TextSize = 12,
-		TextTransparency = 0.4,
-		TextXAlignment = "Center",
-		TextYAlignment = "Center",
-		Size = Horizontal and UDim2.new(0, 160, 1, 0) or UDim2.new(1, 0, 0, 28),
-		Position = Horizontal and UDim2.fromOffset(0, 0) or UDim2.fromOffset(0, 4),
-		BackgroundTransparency = 1,
-		ThemeTag = {
-			TextColor3 = "SubText",
-		},
-	})
+		local Line = New("Frame", {
+			Name = Name,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromOffset(X, Y),
+			Size = UDim2.fromOffset(Length, 2),
+			Rotation = -45,
+			BorderSizePixel = 0,
+			BackgroundTransparency = 0.05,
+			ZIndex = 552,
+			ThemeTag = {
+				BackgroundColor3 = "Accent",
+			},
+			Parent = ResizeGrip,
+		}, {
+			New("UICorner", {
+				CornerRadius = UDim.new(1, 0),
+			}),
+		})
+
+		return Glow, Line
+	end
+
+	local ResizeGripGlow1, ResizeGripLine1 = CreateResizeGripLine("Grip1", 13, 10, 10)
+	local ResizeGripGlow2, ResizeGripLine2 = CreateResizeGripLine("Grip2", 8, 13, 13)
+	local ResizeGripGlow3, ResizeGripLine3 = CreateResizeGripLine("Grip3", 4, 15, 15)
+
+	local ResizeGripLines = { ResizeGripLine1, ResizeGripLine2, ResizeGripLine3 }
+	local ResizeGripGlows = { ResizeGripGlow1, ResizeGripGlow2, ResizeGripGlow3 }
+
 
 	Window.TabHolder = New("ScrollingFrame", {
-		Size = Horizontal and UDim2.new(1, -SearchRowWidth - 10 - EdgeInset - LeftInset, 1, 0) or UDim2.new(1, -LeftInset, 1, -(Layout.SearchBoxSize + 4)),
-		Position = Horizontal and UDim2.fromOffset(SearchRowWidth + 10 + LeftInset, 0) or UDim2.fromOffset(LeftInset, Layout.SearchBoxSize + 4),
+		Size = Horizontal and UDim2.new(1, -LeftInset - EdgeInset, 1, 0) or UDim2.new(1, -LeftInset, 1, 0),
+		Position = UDim2.fromOffset(LeftInset, 0),
 		BackgroundTransparency = 1,
 		ScrollBarImageTransparency = 1,
 		ScrollBarThickness = 0,
@@ -2043,7 +2054,6 @@ return function(Config)
 			FillDirection = Horizontal and Enum.FillDirection.Horizontal or Enum.FillDirection.Vertical,
 			VerticalAlignment = Horizontal and Enum.VerticalAlignment.Center or Enum.VerticalAlignment.Top,
 		}),
-		Window.NoResultsLabel,
 	})
 
 	local TabFrame = New("Frame", {
@@ -2052,7 +2062,6 @@ return function(Config)
 		BackgroundTransparency = 1,
 		ClipsDescendants = not Horizontal,
 	}, {
-		Window.TabSearchBox,
 		Window.TabHolder,
 		Selector,
 	})
@@ -2093,18 +2102,96 @@ return function(Config)
 	})
 
 	--// ============================================================
-	--// STATIC BRIGHT NEON OUTLINE
-	--// No animation. Uses the brightest neon color from the previous
-	--// version with a little transparency for a clean soft-glow look.
+	--// ONE CLEAN ROTATING NEON SWEEP
+	--// The old rotating UIGradient creates two opposite highlights.
+	--// Keep the neon border itself steady, then move ONE soft streak
+	--// around the rounded perimeter. No second/opposite glow.
 	--// ============================================================
 
-	local NEON_GRADIENT = ColorSequence.new({
-		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(120, 45, 235)),
-		ColorSequenceKeypoint.new(0.28, Color3.fromRGB(165, 82, 255)),
-		ColorSequenceKeypoint.new(0.50, Color3.fromRGB(205, 0, 255)),
-		ColorSequenceKeypoint.new(0.72, Color3.fromRGB(165, 82, 255)),
-		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(120, 45, 235)),
+	local RunService = game:GetService("RunService")
+
+	-- Soft purple/pink/blue outline like the reference, but brighter and more
+	-- neon. The colors will also shift over time for a shiny animated look.
+	local NeonGradientColors = ColorSequence.new({
+		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(110, 98, 238)),
+		ColorSequenceKeypoint.new(0.22, Color3.fromRGB(135, 83, 229)),
+		ColorSequenceKeypoint.new(0.48, Color3.fromRGB(179, 72, 232)),
+		ColorSequenceKeypoint.new(0.64, Color3.fromRGB(235, 92, 232)),
+		ColorSequenceKeypoint.new(0.82, Color3.fromRGB(189, 120, 226)),
+		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(110, 98, 238)),
 	})
+
+	local function Wrap01(Value)
+		return (Value % 1 + 1) % 1
+	end
+
+	local function BuildShiftedNeonGradient(Phase)
+		local Shift = Phase * 0.09
+		return ColorSequence.new({
+			ColorSequenceKeypoint.new(0.00, Color3.fromHSV(Wrap01(0.67 + Shift), 0.52, 1.00)),
+			ColorSequenceKeypoint.new(0.20, Color3.fromHSV(Wrap01(0.73 + Shift), 0.62, 1.00)),
+			ColorSequenceKeypoint.new(0.46, Color3.fromHSV(Wrap01(0.79 + Shift), 0.67, 1.00)),
+			ColorSequenceKeypoint.new(0.62, Color3.fromHSV(Wrap01(0.86 + Shift), 0.58, 1.00)),
+			ColorSequenceKeypoint.new(0.82, Color3.fromHSV(Wrap01(0.92 + Shift), 0.44, 1.00)),
+			ColorSequenceKeypoint.new(1.00, Color3.fromHSV(Wrap01(0.75 + Shift), 0.58, 1.00)),
+		})
+	end
+
+	local NeonGradientTransparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0.00, 0.10),
+		NumberSequenceKeypoint.new(0.30, 0.02),
+		NumberSequenceKeypoint.new(0.52, 0.00),
+		NumberSequenceKeypoint.new(0.72, 0.02),
+		NumberSequenceKeypoint.new(1.00, 0.10),
+	})
+
+	-- Soft purple halo behind the window. This is what gives the
+	-- outline the same "lit from the edge" look as the neon hat.
+	local NeonGlowTexture = "rbxassetid://8992230677"
+	local NeonOuterExtra = 84
+	local NeonInnerExtra = 46
+
+	local function CreateNeonHalo(Name, Extra, Color, Transparency)
+		return New("ImageLabel", {
+			Name = Name,
+			AnchorPoint = Vector2.new(0, 0),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			Position = UDim2.new(
+				Window.Position.X.Scale,
+				Window.Position.X.Offset - Extra / 2,
+				Window.Position.Y.Scale,
+				Window.Position.Y.Offset - Extra / 2
+			),
+			Size = UDim2.new(
+				Window.Size.X.Scale,
+				Window.Size.X.Offset + Extra,
+				Window.Size.Y.Scale,
+				Window.Size.Y.Offset + Extra
+			),
+			Image = NeonGlowTexture,
+			ImageColor3 = Color,
+			ImageTransparency = Transparency,
+			ScaleType = Enum.ScaleType.Slice,
+			SliceCenter = Rect.new(99, 99, 99, 99),
+			Active = false,
+			Parent = Config.Parent,
+		})
+	end
+
+	Window.NeonGlowOuter = CreateNeonHalo(
+		"NeonGlowOuter",
+		NeonOuterExtra,
+		Color3.fromRGB(126, 24, 255),
+		0.52
+	)
+
+	Window.NeonGlowInner = CreateNeonHalo(
+		"NeonGlowInner",
+		NeonInnerExtra,
+		Color3.fromRGB(224, 54, 255),
+		0.40
+	)
 
 	Window.Root = New("Frame", {
 		Active = true,
@@ -2115,7 +2202,7 @@ return function(Config)
 		ClipsDescendants = true,
 	}, {
 		New("UICorner", {
-			CornerRadius = UDim.new(0, 12),
+			CornerRadius = UDim.new(0, 9),
 		}),
 		Window.AcrylicPaint.Frame,
 		Window.TabDisplay,
@@ -2124,21 +2211,72 @@ return function(Config)
 		ResizeStartFrame,
 	})
 
+	-- Extra all-around glow strokes so the left/right edges glow as much as
+	-- the top/bottom. These sit under the crisp neon border.
+	Window.NeonStrokeGlowOuter = New("UIStroke", {
+		Name = "NeonStrokeGlowOuter",
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Thickness = 12,
+		Transparency = 0.88,
+		Color = Color3.new(1, 1, 1),
+		Parent = Window.Root,
+	})
+
+	Window.NeonStrokeGlowOuterGradient = New("UIGradient", {
+		Color = NeonGradientColors,
+		Rotation = 0,
+		Parent = Window.NeonStrokeGlowOuter,
+	})
+
+	Window.NeonStrokeGlowInner = New("UIStroke", {
+		Name = "NeonStrokeGlowInner",
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Thickness = 7,
+		Transparency = 0.74,
+		Color = Color3.new(1, 1, 1),
+		Parent = Window.Root,
+	})
+
+	Window.NeonStrokeGlowInnerGradient = New("UIGradient", {
+		Color = NeonGradientColors,
+		Rotation = 0,
+		Parent = Window.NeonStrokeGlowInner,
+	})
+
+	-- Crisp luminous edge sitting on top of the soft halo.
 	Window.NeonStroke = New("UIStroke", {
 		Name = "NeonStroke",
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		LineJoinMode = Enum.LineJoinMode.Round,
-		Thickness = 3.1,
-		Transparency = 0.5,
+		Thickness = 2.75,
+		Transparency = 0,
 		Color = Color3.new(1, 1, 1),
 		Parent = Window.Root,
 	})
 
 	Window.NeonGradient = New("UIGradient", {
-		Color = NEON_GRADIENT,
-		Rotation = 45,
+		Color = NeonGradientColors,
+		Transparency = NeonGradientTransparency,
+		Rotation = 0,
 		Parent = Window.NeonStroke,
 	})
+
+	local function SyncNeonVisibility()
+		local Visible = Window.Root.Visible
+
+		if Window.NeonGlowOuter and Window.NeonGlowOuter.Parent then
+			Window.NeonGlowOuter.Visible = Visible
+		end
+
+		if Window.NeonGlowInner and Window.NeonGlowInner.Parent then
+			Window.NeonGlowInner.Visible = Visible
+		end
+	end
+
+	SyncNeonVisibility()
+	Creator.AddSignal(Window.Root:GetPropertyChangedSignal("Visible"), SyncNeonVisibility)
 
 local AccountInfo = Instance.new("Frame")
 local AvatarFrame = Instance.new("Frame")
@@ -2219,6 +2357,7 @@ TypeLabel.TextSize = 12
 TypeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 TypeLabel.TextXAlignment = Enum.TextXAlignment.Left
 TypeLabel.TextWrapped = true
+TypeLabel.RichText = true
 
 ExpiryLabel.Name = "Expiry"
 ExpiryLabel.Parent = InfoFrame
@@ -2231,6 +2370,7 @@ ExpiryLabel.Text = "Key expires: --"
 ExpiryLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 ExpiryLabel.TextXAlignment = Enum.TextXAlignment.Left
 ExpiryLabel.TextWrapped = true
+ExpiryLabel.RichText = true
 ExpiryLabel.TextYAlignment = Enum.TextYAlignment.Top
 
 local function IsPremium()
@@ -2268,9 +2408,14 @@ end
 
 task.spawn(function()
     while AccountInfo.Parent do
-        TypeLabel.Text =
-            "Type: "
-            .. (IsPremium() and "Premium" or "Standard")
+        if IsPremium() then
+            -- Keep the label readable, but make the Premium value gold.
+            TypeLabel.Text = '<font color="rgb(255,200,70)"><b>Premium</b></font>'
+            TypeLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+        else
+            TypeLabel.Text = "Standard"
+            TypeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        end
 
         local expires = GetExpiresAt()
         local remaining
@@ -2279,12 +2424,20 @@ task.spawn(function()
             remaining = expires - os.time()
         end
 
-        if remaining and remaining > 0 then
+        if type(expires) ~= "number" then
+            -- No expiry timestamp = permanent key.
+            ExpiryLabel.Text = '<font color="rgb(80,255,120)"><b>Permanent</b></font>'
+            ExpiryLabel.TextColor3 = Color3.fromRGB(80, 255, 120)
+        elseif remaining and remaining > 0 then
+            -- Temporary key: countdown is red.
             ExpiryLabel.Text =
-                "Key expires in: "
+                'Key expires in: <font color="rgb(255,90,90)"><b>'
                 .. FormatDuration(remaining)
+                .. '</b></font>'
+            ExpiryLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
         else
-            ExpiryLabel.Text = "Key expires in: --"
+            ExpiryLabel.Text = '<font color="rgb(255,90,90)"><b>Expired</b></font>'
+            ExpiryLabel.TextColor3 = Color3.fromRGB(255, 90, 90)
         end
 
         task.wait(1)
@@ -2338,27 +2491,160 @@ end)
 		ZIndex = 201,
 	}, {
 		New("UICorner", {
-			CornerRadius = UDim.new(0, 10),
+			CornerRadius = UDim.new(0, 8),
+		}),
+		New("ImageLabel", {
+			Name = "FloatingNeonHalo",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.new(1, 34, 1, 34),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			Image = NeonGlowTexture,
+			ImageColor3 = Color3.fromRGB(198, 42, 255),
+			ImageTransparency = 0.42,
+			ScaleType = Enum.ScaleType.Slice,
+			SliceCenter = Rect.new(99, 99, 99, 99),
+			ZIndex = 201,
 		}),
 		FloatingLogoImage,
 	})
 
-	--// FLOATING ICON: same bright static neon outline.
+	--// FLOATING ICON: SAME HAT-STYLE NEON RIM
+	Window.FloatingNeonStrokeGlowOuter = New("UIStroke", {
+		Name = "FloatingNeonStrokeGlowOuter",
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Thickness = 10,
+		Transparency = 0.88,
+		Color = Color3.new(1, 1, 1),
+		Parent = FloatingLogoBackground,
+	})
+
+	Window.FloatingNeonStrokeGlowOuterGradient = New("UIGradient", {
+		Color = NeonGradientColors,
+		Rotation = 0,
+		Parent = Window.FloatingNeonStrokeGlowOuter,
+	})
+
+	Window.FloatingNeonStrokeGlowInner = New("UIStroke", {
+		Name = "FloatingNeonStrokeGlowInner",
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Thickness = 6,
+		Transparency = 0.72,
+		Color = Color3.new(1, 1, 1),
+		Parent = FloatingLogoBackground,
+	})
+
+	Window.FloatingNeonStrokeGlowInnerGradient = New("UIGradient", {
+		Color = NeonGradientColors,
+		Rotation = 0,
+		Parent = Window.FloatingNeonStrokeGlowInner,
+	})
+
 	Window.FloatingNeonStroke = New("UIStroke", {
 		Name = "FloatingNeonStroke",
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		LineJoinMode = Enum.LineJoinMode.Round,
-		Thickness = 2.8,
-		Transparency = 0.5,
+		Thickness = 2.5,
+		Transparency = 0,
 		Color = Color3.new(1, 1, 1),
 		Parent = FloatingLogoBackground,
 	})
 
 	Window.FloatingNeonGradient = New("UIGradient", {
-		Color = NEON_GRADIENT,
-		Rotation = 45,
+		Color = NeonGradientColors,
+		Transparency = NeonGradientTransparency,
+		Rotation = 0,
 		Parent = Window.FloatingNeonStroke,
 	})
+
+
+	-- Slow shiny color-shifting gradient animation for the border and glow.
+	Window.NeonShiftRunning = true
+
+	Creator.AddSignal(RunService.RenderStepped, function(DeltaTime)
+		if not Window.NeonShiftRunning or not Window.Root or not Window.Root.Parent then
+			return
+		end
+
+		Window.NeonShiftPhase = ((Window.NeonShiftPhase or 0) + DeltaTime / 8) % 1
+		local Phase = Window.NeonShiftPhase
+		local ShiftedGradient = BuildShiftedNeonGradient(Phase)
+		local Drift = math.sin(Phase * math.pi * 2) * 0.18
+
+		if Window.NeonGradient then
+			Window.NeonGradient.Color = ShiftedGradient
+			Window.NeonGradient.Offset = Vector2.new(Drift, 0)
+		end
+		if Window.NeonStrokeGlowOuterGradient then
+			Window.NeonStrokeGlowOuterGradient.Color = ShiftedGradient
+			Window.NeonStrokeGlowOuterGradient.Offset = Vector2.new(Drift * 0.8, 0)
+		end
+		if Window.NeonStrokeGlowInnerGradient then
+			Window.NeonStrokeGlowInnerGradient.Color = ShiftedGradient
+			Window.NeonStrokeGlowInnerGradient.Offset = Vector2.new(Drift * 0.55, 0)
+		end
+		if Window.FloatingNeonGradient then
+			Window.FloatingNeonGradient.Color = ShiftedGradient
+			Window.FloatingNeonGradient.Offset = Vector2.new(Drift, 0)
+		end
+		if Window.FloatingNeonStrokeGlowOuterGradient then
+			Window.FloatingNeonStrokeGlowOuterGradient.Color = ShiftedGradient
+			Window.FloatingNeonStrokeGlowOuterGradient.Offset = Vector2.new(Drift * 0.8, 0)
+		end
+		if Window.FloatingNeonStrokeGlowInnerGradient then
+			Window.FloatingNeonStrokeGlowInnerGradient.Color = ShiftedGradient
+			Window.FloatingNeonStrokeGlowInnerGradient.Offset = Vector2.new(Drift * 0.55, 0)
+		end
+
+		if Window.NeonGlowOuter then
+			Window.NeonGlowOuter.ImageColor3 = Color3.fromHSV(Wrap01(0.76 + Phase * 0.08), 0.74, 1.00)
+		end
+		if Window.NeonGlowInner then
+			Window.NeonGlowInner.ImageColor3 = Color3.fromHSV(Wrap01(0.84 + Phase * 0.08), 0.62, 1.00)
+		end
+	end)
+
+	-- Pulse the neon every second: glow for 1 second, dim for 1 second.
+	Window.NeonPulseRunning = true
+
+	local NeonPulseTargets = {
+		{ Object = Window.NeonGlowOuter, Property = "ImageTransparency", Glow = 0.52, Dim = 0.88 },
+		{ Object = Window.NeonGlowInner, Property = "ImageTransparency", Glow = 0.40, Dim = 0.78 },
+		{ Object = Window.NeonStrokeGlowOuter, Property = "Transparency", Glow = 0.88, Dim = 0.96 },
+		{ Object = Window.NeonStrokeGlowInner, Property = "Transparency", Glow = 0.74, Dim = 0.90 },
+		{ Object = Window.NeonStroke, Property = "Transparency", Glow = 0.00, Dim = 0.38 },
+		{ Object = Window.FloatingNeonStrokeGlowOuter, Property = "Transparency", Glow = 0.88, Dim = 0.96 },
+		{ Object = Window.FloatingNeonStrokeGlowInner, Property = "Transparency", Glow = 0.72, Dim = 0.88 },
+		{ Object = Window.FloatingNeonStroke, Property = "Transparency", Glow = 0.00, Dim = 0.36 },
+	}
+
+	local function TweenNeonPulse(IsGlow)
+		for _, Entry in next, NeonPulseTargets do
+			local Target = Entry.Object
+			if Target and Target.Parent then
+				local GoalValue = IsGlow and Entry.Glow or Entry.Dim
+				pcall(function()
+					TweenService:Create(
+						Target,
+						TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+						{ [Entry.Property] = GoalValue }
+					):Play()
+				end)
+			end
+		end
+	end
+
+	task.spawn(function()
+		local IsGlow = false
+		while Window.NeonPulseRunning and Window.Root and Window.Root.Parent do
+			IsGlow = not IsGlow
+			TweenNeonPulse(IsGlow)
+			task.wait(1)
+		end
+	end)
 
 	Window.CloseUIShadow = New("ImageButton", {
 		Name = "CloseUIShadow",
@@ -2406,12 +2692,41 @@ end)
 	Window.ContainerBackMotor = Flipper.SingleMotor.new(0)
 	Window.ContainerPosMotor = Flipper.SingleMotor.new(94)
 
+	local function SyncMainNeonHalo()
+		local CurrentSize = SizeMotor:getValue()
+		local CurrentPos = PosMotor:getValue()
+
+		if Window.NeonGlowOuter and Window.NeonGlowOuter.Parent then
+			Window.NeonGlowOuter.Position = UDim2.fromOffset(
+				CurrentPos.X - NeonOuterExtra / 2,
+				CurrentPos.Y - NeonOuterExtra / 2
+			)
+			Window.NeonGlowOuter.Size = UDim2.fromOffset(
+				CurrentSize.X + NeonOuterExtra,
+				CurrentSize.Y + NeonOuterExtra
+			)
+		end
+
+		if Window.NeonGlowInner and Window.NeonGlowInner.Parent then
+			Window.NeonGlowInner.Position = UDim2.fromOffset(
+				CurrentPos.X - NeonInnerExtra / 2,
+				CurrentPos.Y - NeonInnerExtra / 2
+			)
+			Window.NeonGlowInner.Size = UDim2.fromOffset(
+				CurrentSize.X + NeonInnerExtra,
+				CurrentSize.Y + NeonInnerExtra
+			)
+		end
+	end
+
 	SizeMotor:onStep(function(values)
 		Window.Root.Size = UDim2.new(0, values.X, 0, values.Y)
+		SyncMainNeonHalo()
 	end)
 
 	PosMotor:onStep(function(values)
 		Window.Root.Position = UDim2.new(0, values.X, 0, values.Y)
+		SyncMainNeonHalo()
 	end)
 
 	local SelectorInset = Layout.SelectorInset
@@ -2515,6 +2830,26 @@ end)
 		end
 	end)
 
+	Creator.AddSignal(ResizeStartFrame.MouseEnter, function()
+		for _, Line in next, ResizeGripLines do
+			TweenService:Create(Line, TweenInfo.new(0.15), { BackgroundTransparency = 0 }):Play()
+		end
+		for _, Glow in next, ResizeGripGlows do
+			TweenService:Create(Glow, TweenInfo.new(0.15), { BackgroundTransparency = 0.45 }):Play()
+		end
+	end)
+
+	Creator.AddSignal(ResizeStartFrame.MouseLeave, function()
+		if not Resizing then
+			for _, Line in next, ResizeGripLines do
+				TweenService:Create(Line, TweenInfo.new(0.18), { BackgroundTransparency = 0.05 }):Play()
+			end
+			for _, Glow in next, ResizeGripGlows do
+				TweenService:Create(Glow, TweenInfo.new(0.18), { BackgroundTransparency = 0.72 }):Play()
+			end
+		end
+	end)
+
 	Creator.AddSignal(ResizeStartFrame.InputBegan, function(Input)
 		if
 			Input.UserInputType == Enum.UserInputType.MouseButton1
@@ -2522,6 +2857,13 @@ end)
 		then
 			Resizing = true
 			ResizePos = Input.Position
+
+			for _, Line in next, ResizeGripLines do
+				Line.BackgroundTransparency = 0
+			end
+			for _, Glow in next, ResizeGripGlows do
+				Glow.BackgroundTransparency = 0.35
+			end
 		end
 	end)
 
@@ -2561,6 +2903,14 @@ end)
 		if Resizing == true or Input.UserInputType == Enum.UserInputType.Touch then
 			Resizing = false
 			Window.Size = UDim2.fromOffset(SizeMotor:getValue().X, SizeMotor:getValue().Y)
+
+			for _, Line in next, ResizeGripLines do
+				TweenService:Create(Line, TweenInfo.new(0.18), { BackgroundTransparency = 0.05 }):Play()
+			end
+			for _, Glow in next, ResizeGripGlows do
+				TweenService:Create(Glow, TweenInfo.new(0.18), { BackgroundTransparency = 0.72 }):Play()
+			end
+
 			if Library and Library.WindowSizeChanged then
 				Library.WindowSizeChanged:Fire(Window.Size)
 			end
@@ -2748,8 +3098,19 @@ end)
 	end
 
 	function Window:Destroy()
+		Window.NeonPulseRunning = false
+		Window.NeonShiftRunning = false
+
 		if Window.CloseUIShadow then
 			Window.CloseUIShadow:Destroy()
+		end
+
+		-- These are siblings of Window.Root, so clean them up explicitly.
+		if Window.NeonGlowOuter then
+			Window.NeonGlowOuter:Destroy()
+		end
+		if Window.NeonGlowInner then
+			Window.NeonGlowInner:Destroy()
 		end
 
 		if Library.UseAcrylic then
@@ -2821,15 +3182,8 @@ end)
 		Reversed = Layout.Reversed
 		SelectorInset = Layout.SelectorInset
 
-		Window.TabSearchBox.Size = Horizontal and UDim2.new(0, SearchRowWidth, 1, 0) or UDim2.new(1, -LeftInset, 0, Layout.SearchBoxSize)
-		Window.TabSearchBox.AnchorPoint = Horizontal and Vector2.new(0, 0.5) or Vector2.new(0, 0)
-		Window.TabSearchBox.Position = Horizontal and UDim2.new(0, LeftInset, 0.5, 0) or UDim2.fromOffset(LeftInset, 0)
-
-		Window.NoResultsLabel.Size = Horizontal and UDim2.new(0, 160, 1, 0) or UDim2.new(1, 0, 0, 28)
-		Window.NoResultsLabel.Position = Horizontal and UDim2.fromOffset(0, 0) or UDim2.fromOffset(0, 4)
-
-		Window.TabHolder.Size = Horizontal and UDim2.new(1, -SearchRowWidth - 10 - EdgeInset - LeftInset, 1, 0) or UDim2.new(1, -LeftInset, 1, -(Layout.SearchBoxSize + 4))
-		Window.TabHolder.Position = Horizontal and UDim2.fromOffset(SearchRowWidth + 10 + LeftInset, 0) or UDim2.fromOffset(LeftInset, Layout.SearchBoxSize + 4)
+		Window.TabHolder.Size = Horizontal and UDim2.new(1, -LeftInset - EdgeInset, 1, 0) or UDim2.new(1, -LeftInset, 1, 0)
+		Window.TabHolder.Position = UDim2.fromOffset(LeftInset, 0)
 		Window.TabHolder.ScrollingDirection = Horizontal and Enum.ScrollingDirection.X or Enum.ScrollingDirection.Y
 		Window.TabHolder.CanvasPosition = Vector2.new(0, 0)
 
@@ -2867,53 +3221,6 @@ end)
 		return Window.Alignment
 	end
 
-	local function TabMatchesQuery(Tab, Query)
-		for _, Descendant in next, Tab.ContainerFrame:GetDescendants() do
-			if
-				(Descendant.Name == "ElementTitleLabel"
-					or Descendant.Name == "ElementDescLabel"
-					or Descendant.Name == "SectionTitleLabel")
-				and string.find(string.lower(Descendant.Text), Query, 1, true)
-			then
-				return true
-			end
-		end
-		return false
-	end
-
-	local function FilterTabs(Query)
-		Query = string.lower(Query)
-
-		if Query == "" then
-			for _, Tab in next, TabModule.Tabs do
-				Tab.Frame.Visible = true
-			end
-			Selector.Visible = true
-			Window.NoResultsLabel.Visible = false
-			return
-		end
-
-		local FirstMatch
-		for TabIndex, Tab in next, TabModule.Tabs do
-			local Matches = TabMatchesQuery(Tab, Query)
-			Tab.Frame.Visible = Matches
-
-			if Matches and not FirstMatch then
-				FirstMatch = TabIndex
-			end
-		end
-
-		Selector.Visible = FirstMatch ~= nil
-		Window.NoResultsLabel.Visible = FirstMatch == nil
-
-		if FirstMatch and not (TabModule.Tabs[TabModule.SelectedTab] and TabModule.Tabs[TabModule.SelectedTab].Frame.Visible) then
-			TabModule:SelectTab(FirstMatch)
-		end
-	end
-
-	Creator.AddSignal(Window.TabSearchBox:GetPropertyChangedSignal("Text"), function()
-		FilterTabs(Window.TabSearchBox.Text)
-	end)
 
 	function Window:Tab(TabConfig)
 		return TabModule:New(TabConfig.Title, TabConfig.Icon, Window.TabHolder)
@@ -3948,6 +4255,25 @@ ToggleFrame.DescLabel.Size = UDim2.new(1, -54, 0, 14)
 		},
 	})
 
+	-- Neon glow layers for enabled toggles. They stay invisible while OFF.
+	local ToggleGlowOuter = New("UIStroke", {
+		Name = "ToggleGlowOuter",
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Thickness = 7,
+		Transparency = 1,
+		Color = Color3.fromRGB(126, 24, 255),
+	})
+
+	local ToggleGlowInner = New("UIStroke", {
+		Name = "ToggleGlowInner",
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Thickness = 4,
+		Transparency = 1,
+		Color = Color3.fromRGB(226, 58, 255),
+	})
+
 	local ToggleSlider = New("Frame", {
 		Size = UDim2.fromOffset(36, 18),
 		AnchorPoint = Vector2.new(1, 0.5),
@@ -3961,6 +4287,8 @@ ToggleFrame.DescLabel.Size = UDim2.new(1, -54, 0, 14)
 		New("UICorner", {
 			CornerRadius = UDim.new(0, 9),
 		}),
+		ToggleGlowOuter,
+		ToggleGlowInner,
 		ToggleBorder,
 		ToggleCircle,
 	}) :: Frame
@@ -3990,6 +4318,19 @@ ToggleFrame.DescLabel.Size = UDim2.new(1, -54, 0, 14)
 			ToggleSlider,
 			TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
 			{ BackgroundTransparency = Toggle.Value and 0 or 1 }
+		):Play()
+
+		-- Fade the neon aura in only while the toggle is enabled.
+		TweenService:Create(
+			ToggleGlowOuter,
+			TweenInfo.new(0.30, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
+			{ Transparency = Toggle.Value and 0.82 or 1 }
+		):Play()
+
+		TweenService:Create(
+			ToggleGlowInner,
+			TweenInfo.new(0.30, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
+			{ Transparency = Toggle.Value and 0.58 or 1 }
 		):Play()
 
 		ToggleCircle.ImageTransparency = Toggle.Value and 0 or 0.5
