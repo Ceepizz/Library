@@ -1848,6 +1848,7 @@ local Components = script.Parent
 
 local Library = require(Root)
 
+local TweenService = game:GetService("TweenService")
 local UserInputService = Library.Utilities:Clone(game:GetService("UserInputService"))
 local Mouse = Library.Utilities:Clone(game:GetService("Players")).LocalPlayer:GetMouse()
 local Camera = Library.Utilities:Clone(game:GetService("Workspace")).CurrentCamera
@@ -1968,11 +1969,74 @@ return function(Config)
 	})
 
 	local ResizeStartFrame = New("Frame", {
+		Name = "ResizeHandle",
 		Active = true,
-		Size = UDim2.fromOffset(20, 20),
+		Size = UDim2.fromOffset(26, 26),
 		BackgroundTransparency = 1,
-		Position = UDim2.new(1, -20, 1, -20),
+		Position = UDim2.new(1, -26, 1, -26),
+		ZIndex = 550,
 	})
+
+	-- Visible bottom-right resize grip so users know the window can be resized.
+	-- Three shiny diagonal bars sit inside the existing drag target.
+	local ResizeGrip = New("Frame", {
+		Name = "ResizeGrip",
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -3, 1, -3),
+		Size = UDim2.fromOffset(18, 18),
+		BackgroundTransparency = 1,
+		ZIndex = 551,
+		Parent = ResizeStartFrame,
+	})
+
+	local function CreateResizeGripLine(Name, Length, X, Y)
+		local Glow = New("Frame", {
+			Name = Name .. "Glow",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromOffset(X, Y),
+			Size = UDim2.fromOffset(Length + 3, 4),
+			Rotation = -45,
+			BorderSizePixel = 0,
+			BackgroundTransparency = 0.72,
+			ZIndex = 551,
+			ThemeTag = {
+				BackgroundColor3 = "Accent",
+			},
+			Parent = ResizeGrip,
+		}, {
+			New("UICorner", {
+				CornerRadius = UDim.new(1, 0),
+			}),
+		})
+
+		local Line = New("Frame", {
+			Name = Name,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromOffset(X, Y),
+			Size = UDim2.fromOffset(Length, 2),
+			Rotation = -45,
+			BorderSizePixel = 0,
+			BackgroundTransparency = 0.05,
+			ZIndex = 552,
+			ThemeTag = {
+				BackgroundColor3 = "Accent",
+			},
+			Parent = ResizeGrip,
+		}, {
+			New("UICorner", {
+				CornerRadius = UDim.new(1, 0),
+			}),
+		})
+
+		return Glow, Line
+	end
+
+	local ResizeGripGlow1, ResizeGripLine1 = CreateResizeGripLine("Grip1", 13, 10, 10)
+	local ResizeGripGlow2, ResizeGripLine2 = CreateResizeGripLine("Grip2", 8, 13, 13)
+	local ResizeGripGlow3, ResizeGripLine3 = CreateResizeGripLine("Grip3", 4, 15, 15)
+
+	local ResizeGripLines = { ResizeGripLine1, ResizeGripLine2, ResizeGripLine3 }
+	local ResizeGripGlows = { ResizeGripGlow1, ResizeGripGlow2, ResizeGripGlow3 }
 
 
 	Window.TabHolder = New("ScrollingFrame", {
@@ -2766,6 +2830,26 @@ end)
 		end
 	end)
 
+	Creator.AddSignal(ResizeStartFrame.MouseEnter, function()
+		for _, Line in next, ResizeGripLines do
+			TweenService:Create(Line, TweenInfo.new(0.15), { BackgroundTransparency = 0 }):Play()
+		end
+		for _, Glow in next, ResizeGripGlows do
+			TweenService:Create(Glow, TweenInfo.new(0.15), { BackgroundTransparency = 0.45 }):Play()
+		end
+	end)
+
+	Creator.AddSignal(ResizeStartFrame.MouseLeave, function()
+		if not Resizing then
+			for _, Line in next, ResizeGripLines do
+				TweenService:Create(Line, TweenInfo.new(0.18), { BackgroundTransparency = 0.05 }):Play()
+			end
+			for _, Glow in next, ResizeGripGlows do
+				TweenService:Create(Glow, TweenInfo.new(0.18), { BackgroundTransparency = 0.72 }):Play()
+			end
+		end
+	end)
+
 	Creator.AddSignal(ResizeStartFrame.InputBegan, function(Input)
 		if
 			Input.UserInputType == Enum.UserInputType.MouseButton1
@@ -2773,6 +2857,13 @@ end)
 		then
 			Resizing = true
 			ResizePos = Input.Position
+
+			for _, Line in next, ResizeGripLines do
+				Line.BackgroundTransparency = 0
+			end
+			for _, Glow in next, ResizeGripGlows do
+				Glow.BackgroundTransparency = 0.35
+			end
 		end
 	end)
 
@@ -2812,6 +2903,14 @@ end)
 		if Resizing == true or Input.UserInputType == Enum.UserInputType.Touch then
 			Resizing = false
 			Window.Size = UDim2.fromOffset(SizeMotor:getValue().X, SizeMotor:getValue().Y)
+
+			for _, Line in next, ResizeGripLines do
+				TweenService:Create(Line, TweenInfo.new(0.18), { BackgroundTransparency = 0.05 }):Play()
+			end
+			for _, Glow in next, ResizeGripGlows do
+				TweenService:Create(Glow, TweenInfo.new(0.18), { BackgroundTransparency = 0.72 }):Play()
+			end
+
 			if Library and Library.WindowSizeChanged then
 				Library.WindowSizeChanged:Fire(Window.Size)
 			end
