@@ -1901,13 +1901,10 @@ return function(Config)
 	local EdgeInset = 6
 	local LeftInset = 14
 	local RowHeight = 44
-	local SearchBoxSize = Horizontal and 34 or 28
-	local SearchRowWidth = 170
 
 	local function ComputeLayout(ForAlignment)
 		local IsHorizontal = ForAlignment == "Top" or ForAlignment == "Bottom"
 		local IsReversed = ForAlignment == "Right" or ForAlignment == "Bottom"
-		local BoxSize = IsHorizontal and 34 or 28
 
 		local TabFramePos, TabFrameSize
 		if IsHorizontal then
@@ -1945,14 +1942,13 @@ return function(Config)
 		return {
 			Horizontal = IsHorizontal,
 			Reversed = IsReversed,
-			SearchBoxSize = BoxSize,
 			TabFramePos = TabFramePos,
 			TabFrameSize = TabFrameSize,
 			TabDisplayPos = TabDisplayPos,
 			TabDisplaySize = TabDisplaySize,
 			ContainerPos = ContainerPos,
 			ContainerSize = ContainerSize,
-			SelectorInset = IsHorizontal and (SearchRowWidth + 10 + LeftInset) or (BoxSize + 4 + 17),
+			SelectorInset = IsHorizontal and LeftInset or 17,
 		}
 	end
 
@@ -1978,59 +1974,10 @@ return function(Config)
 		Position = UDim2.new(1, -20, 1, -20),
 	})
 
-	Window.TabSearchBox = New("TextBox", {
-		Size = Horizontal and UDim2.new(0, SearchRowWidth, 1, 0) or UDim2.new(1, -LeftInset, 0, Layout.SearchBoxSize),
-		AnchorPoint = Horizontal and Vector2.new(0, 0.5) or Vector2.new(0, 0),
-		Position = Horizontal and UDim2.new(0, LeftInset, 0.5, 0) or UDim2.fromOffset(LeftInset, 0),
-		BackgroundTransparency = 0.89,
-		BackgroundColor3 = Color3.fromRGB(130, 130, 130),
-		PlaceholderText = "Search",
-		ClearTextOnFocus = false,
-		FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json"),
-		TextSize = 12,
-		TextXAlignment = "Left",
-		ClipsDescendants = true,
-		ThemeTag = {
-			BackgroundColor3 = "Element",
-			TextColor3 = "Text",
-			PlaceholderColor3 = "SubText",
-		},
-	}, {
-		New("UICorner", {
-			CornerRadius = UDim.new(0, 6),
-		}),
-		New("UIStroke", {
-			Transparency = 0.5,
-			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-			ThemeTag = {
-				Color = "ElementBorder",
-			},
-		}),
-		New("UIPadding", {
-			PaddingLeft = UDim.new(0, 10),
-			PaddingRight = UDim.new(0, 10),
-		}),
-	})
-
-	Window.NoResultsLabel = New("TextLabel", {
-		Text = "No results found",
-		Visible = false,
-		FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json"),
-		TextSize = 12,
-		TextTransparency = 0.4,
-		TextXAlignment = "Center",
-		TextYAlignment = "Center",
-		Size = Horizontal and UDim2.new(0, 160, 1, 0) or UDim2.new(1, 0, 0, 28),
-		Position = Horizontal and UDim2.fromOffset(0, 0) or UDim2.fromOffset(0, 4),
-		BackgroundTransparency = 1,
-		ThemeTag = {
-			TextColor3 = "SubText",
-		},
-	})
 
 	Window.TabHolder = New("ScrollingFrame", {
-		Size = Horizontal and UDim2.new(1, -SearchRowWidth - 10 - EdgeInset - LeftInset, 1, 0) or UDim2.new(1, -LeftInset, 1, -(Layout.SearchBoxSize + 4)),
-		Position = Horizontal and UDim2.fromOffset(SearchRowWidth + 10 + LeftInset, 0) or UDim2.fromOffset(LeftInset, Layout.SearchBoxSize + 4),
+		Size = Horizontal and UDim2.new(1, -LeftInset - EdgeInset, 1, 0) or UDim2.new(1, -LeftInset, 1, 0),
+		Position = UDim2.fromOffset(LeftInset, 0),
 		BackgroundTransparency = 1,
 		ScrollBarImageTransparency = 1,
 		ScrollBarThickness = 0,
@@ -2043,7 +1990,6 @@ return function(Config)
 			FillDirection = Horizontal and Enum.FillDirection.Horizontal or Enum.FillDirection.Vertical,
 			VerticalAlignment = Horizontal and Enum.VerticalAlignment.Center or Enum.VerticalAlignment.Top,
 		}),
-		Window.NoResultsLabel,
 	})
 
 	local TabFrame = New("Frame", {
@@ -2052,7 +1998,6 @@ return function(Config)
 		BackgroundTransparency = 1,
 		ClipsDescendants = not Horizontal,
 	}, {
-		Window.TabSearchBox,
 		Window.TabHolder,
 		Selector,
 	})
@@ -3052,15 +2997,8 @@ end)
 		Reversed = Layout.Reversed
 		SelectorInset = Layout.SelectorInset
 
-		Window.TabSearchBox.Size = Horizontal and UDim2.new(0, SearchRowWidth, 1, 0) or UDim2.new(1, -LeftInset, 0, Layout.SearchBoxSize)
-		Window.TabSearchBox.AnchorPoint = Horizontal and Vector2.new(0, 0.5) or Vector2.new(0, 0)
-		Window.TabSearchBox.Position = Horizontal and UDim2.new(0, LeftInset, 0.5, 0) or UDim2.fromOffset(LeftInset, 0)
-
-		Window.NoResultsLabel.Size = Horizontal and UDim2.new(0, 160, 1, 0) or UDim2.new(1, 0, 0, 28)
-		Window.NoResultsLabel.Position = Horizontal and UDim2.fromOffset(0, 0) or UDim2.fromOffset(0, 4)
-
-		Window.TabHolder.Size = Horizontal and UDim2.new(1, -SearchRowWidth - 10 - EdgeInset - LeftInset, 1, 0) or UDim2.new(1, -LeftInset, 1, -(Layout.SearchBoxSize + 4))
-		Window.TabHolder.Position = Horizontal and UDim2.fromOffset(SearchRowWidth + 10 + LeftInset, 0) or UDim2.fromOffset(LeftInset, Layout.SearchBoxSize + 4)
+		Window.TabHolder.Size = Horizontal and UDim2.new(1, -LeftInset - EdgeInset, 1, 0) or UDim2.new(1, -LeftInset, 1, 0)
+		Window.TabHolder.Position = UDim2.fromOffset(LeftInset, 0)
 		Window.TabHolder.ScrollingDirection = Horizontal and Enum.ScrollingDirection.X or Enum.ScrollingDirection.Y
 		Window.TabHolder.CanvasPosition = Vector2.new(0, 0)
 
@@ -3098,53 +3036,6 @@ end)
 		return Window.Alignment
 	end
 
-	local function TabMatchesQuery(Tab, Query)
-		for _, Descendant in next, Tab.ContainerFrame:GetDescendants() do
-			if
-				(Descendant.Name == "ElementTitleLabel"
-					or Descendant.Name == "ElementDescLabel"
-					or Descendant.Name == "SectionTitleLabel")
-				and string.find(string.lower(Descendant.Text), Query, 1, true)
-			then
-				return true
-			end
-		end
-		return false
-	end
-
-	local function FilterTabs(Query)
-		Query = string.lower(Query)
-
-		if Query == "" then
-			for _, Tab in next, TabModule.Tabs do
-				Tab.Frame.Visible = true
-			end
-			Selector.Visible = true
-			Window.NoResultsLabel.Visible = false
-			return
-		end
-
-		local FirstMatch
-		for TabIndex, Tab in next, TabModule.Tabs do
-			local Matches = TabMatchesQuery(Tab, Query)
-			Tab.Frame.Visible = Matches
-
-			if Matches and not FirstMatch then
-				FirstMatch = TabIndex
-			end
-		end
-
-		Selector.Visible = FirstMatch ~= nil
-		Window.NoResultsLabel.Visible = FirstMatch == nil
-
-		if FirstMatch and not (TabModule.Tabs[TabModule.SelectedTab] and TabModule.Tabs[TabModule.SelectedTab].Frame.Visible) then
-			TabModule:SelectTab(FirstMatch)
-		end
-	end
-
-	Creator.AddSignal(Window.TabSearchBox:GetPropertyChangedSignal("Text"), function()
-		FilterTabs(Window.TabSearchBox.Text)
-	end)
 
 	function Window:Tab(TabConfig)
 		return TabModule:New(TabConfig.Title, TabConfig.Icon, Window.TabHolder)
