@@ -2321,6 +2321,7 @@ TypeLabel.TextSize = 12
 TypeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 TypeLabel.TextXAlignment = Enum.TextXAlignment.Left
 TypeLabel.TextWrapped = true
+TypeLabel.RichText = true
 
 ExpiryLabel.Name = "Expiry"
 ExpiryLabel.Parent = InfoFrame
@@ -2333,6 +2334,7 @@ ExpiryLabel.Text = "Key expires: --"
 ExpiryLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 ExpiryLabel.TextXAlignment = Enum.TextXAlignment.Left
 ExpiryLabel.TextWrapped = true
+ExpiryLabel.RichText = true
 ExpiryLabel.TextYAlignment = Enum.TextYAlignment.Top
 
 local function IsPremium()
@@ -2370,9 +2372,14 @@ end
 
 task.spawn(function()
     while AccountInfo.Parent do
-        TypeLabel.Text =
-            "Type: "
-            .. (IsPremium() and "Premium" or "Standard")
+        if IsPremium() then
+            -- Keep the label readable, but make the Premium value gold.
+            TypeLabel.Text = 'Type: <font color="rgb(255,200,70)"><b>Premium</b></font>'
+            TypeLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+        else
+            TypeLabel.Text = "Type: Standard"
+            TypeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        end
 
         local expires = GetExpiresAt()
         local remaining
@@ -2381,12 +2388,20 @@ task.spawn(function()
             remaining = expires - os.time()
         end
 
-        if remaining and remaining > 0 then
+        if type(expires) ~= "number" then
+            -- No expiry timestamp = permanent key.
+            ExpiryLabel.Text = '<font color="rgb(80,255,120)"><b>Permanent</b></font>'
+            ExpiryLabel.TextColor3 = Color3.fromRGB(80, 255, 120)
+        elseif remaining and remaining > 0 then
+            -- Temporary key: countdown is red.
             ExpiryLabel.Text =
-                "Key expires in: "
+                'Key expires in: <font color="rgb(255,90,90)"><b>'
                 .. FormatDuration(remaining)
+                .. '</b></font>'
+            ExpiryLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
         else
-            ExpiryLabel.Text = "Key expires in: --"
+            ExpiryLabel.Text = '<font color="rgb(255,90,90)"><b>Expired</b></font>'
+            ExpiryLabel.TextColor3 = Color3.fromRGB(255, 90, 90)
         end
 
         task.wait(1)
