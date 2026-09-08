@@ -1806,14 +1806,30 @@ return function(Config)
 		AutomaticSize = Enum.AutomaticSize.X,
 		BackgroundTransparency = 1,
 	}, {
-		-- Use the outline's original palette without its color animation.
+		-- Keep the original palette and move it across the title.
 		New("UIGradient", {
 			Name = "TitleGradient",
 			Color = Config.TitleGradient,
 			Rotation = 0,
-			Offset = Vector2.zero,
+			Offset = Vector2.new(-1, 0),
 		}),
 	})
+
+	local TitleGradient = TitleBar.Title:FindFirstChild("TitleGradient")
+	local TitleGradientDuration = 3 -- Seconds per left-to-right sweep.
+	local TitleGradientTween = game:GetService("TweenService"):Create(
+		TitleGradient,
+		TweenInfo.new(TitleGradientDuration, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, false),
+		{ Offset = Vector2.new(1, 0) }
+	)
+
+	local function StopTitleGradient()
+		TitleGradientTween:Cancel()
+	end
+
+	AddSignal(Library.OnUnload, StopTitleGradient)
+	AddSignal(TitleBar.Frame.Destroying, StopTitleGradient)
+	TitleGradientTween:Play()
 
 	TitleBar.SubTitle = New("TextLabel", {
 		RichText = true,
