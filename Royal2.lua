@@ -1360,6 +1360,7 @@ function TabModule:New(Title, Icon, Parent)
 	})
 
 	Tab.Frame = New("TextButton", {
+		BorderSizePixel = 0,
 		Size = UDim2.new(1, 0, 0, 34),
 		BackgroundTransparency = 1,
 		Parent = Parent,
@@ -1373,6 +1374,7 @@ function TabModule:New(Title, Icon, Parent)
 		New("UIStroke", {
 			Name = "TabOutline",
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+			BorderStrokePosition = Enum.BorderStrokePosition.Inner,
 			Thickness = 1,
 			Transparency = 0.55,
 			ThemeTag = {
