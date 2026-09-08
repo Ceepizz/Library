@@ -1795,18 +1795,24 @@ return function(Config)
 		LayoutOrder = 1,
 		FontFace = Font.new(
 			"rbxasset://fonts/families/GothamSSm.json",
-			Enum.FontWeight.Regular,
+			Enum.FontWeight.Bold,
 			Enum.FontStyle.Normal
 		),
-		TextSize = 12,
+		TextSize = 20,
+		TextColor3 = Color3.new(1, 1, 1),
 		TextXAlignment = "Left",
 		TextYAlignment = "Center",
 		Size = UDim2.fromScale(0, 1),
 		AutomaticSize = Enum.AutomaticSize.X,
 		BackgroundTransparency = 1,
-		ThemeTag = {
-			TextColor3 = "Text",
-		}
+	}, {
+		-- Use the outline's original palette without its color animation.
+		New("UIGradient", {
+			Name = "TitleGradient",
+			Color = Config.TitleGradient,
+			Rotation = 0,
+			Offset = Vector2.zero,
+		}),
 	})
 
 	TitleBar.SubTitle = New("TextLabel", {
@@ -2688,6 +2694,7 @@ end)
 
 	Window.TitleBar = require(script.Parent.TitleBar)({
 		Title = Config.Title,
+		TitleGradient = NeonGradientColors,
 		SubTitle = Config.SubTitle,
 		Icon = Config.Icon,
 		Parent = Window.Root,
