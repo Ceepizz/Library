@@ -297,6 +297,7 @@ function Library:Window(Config: {
 		Title: string?,
 		SubTitle: string?,
 		TabWidth: number?,
+		ShowTabIcons: boolean?,
 		MinSize: Vector2?,
 		Size: UDim2?,
 		Resize: boolean?,
@@ -366,6 +367,7 @@ function Library:Window(Config: {
 		Icon = Config.Icon,
 
 		TabWidth = Config.TabWidth or 160,
+		ShowTabIcons = Config.ShowTabIcons == true,
 		Alignment = Config.Alignment,
 		Mobile = {
 			GetIcon = (Config.Mobile and Config.Mobile.GetIcon) or function(IsMinimized: boolean): { Image: string, ImageRectOffset: Vector2, ImageRectSize: Vector2 }
@@ -1244,9 +1246,11 @@ function TabModule:ApplyPillShape(Tab, Alignment)
 
 	local TextLabel = Tab.Frame:FindFirstChild("TabTitleLabel")
 	local IconLabel = Tab.Frame:FindFirstChild("IconLabel")
+	local ShowIcon = TabModule.Window.ShowTabIcons == true and IconLabel.Image ~= ""
+	IconLabel.Visible = ShowIcon
 
 	if Horizontal then
-		TextLabel.Position = UDim2.new(0, 28, 0.5, 0)
+		TextLabel.Position = UDim2.new(0, ShowIcon and 28 or 8, 0.5, 0)
 		TextLabel.Size = UDim2.new(0, 0, 1, 0)
 		TextLabel.AutomaticSize = Enum.AutomaticSize.X
 		TextLabel.TextXAlignment = "Left"
@@ -1264,8 +1268,8 @@ function TabModule:ApplyPillShape(Tab, Alignment)
 			})
 		end
 	else
-		TextLabel.Position = UDim2.new(0, 30, 0.5, 0)
-		TextLabel.Size = UDim2.new(1, -38, 1, 0)
+		TextLabel.Position = UDim2.new(0, ShowIcon and 30 or 10, 0.5, 0)
+		TextLabel.Size = UDim2.new(1, ShowIcon and -38 or -18, 1, 0)
 		TextLabel.AutomaticSize = Enum.AutomaticSize.None
 		TextLabel.TextXAlignment = "Left"
 
@@ -1303,11 +1307,15 @@ function TabModule:New(Title, Icon, Parent)
 		Type = "Tab",
 	}
 
-	Icon = Icon:find("^rbxasset[://|id://]") == nil and Library.Utilities:GetIcon(Icon) or {
-		Image = Icon,
-		ImageRectOffset = Vector2.zero,
-		ImageRectSize = Vector2.zero
-	}
+	if typeof(Icon) == "string" and Icon ~= "" then
+		Icon = Icon:find("^rbxasset[://|id://]") == nil and Library.Utilities:GetIcon(Icon) or {
+			Image = Icon,
+			ImageRectOffset = Vector2.zero,
+			ImageRectSize = Vector2.zero
+		}
+	else
+		Icon = nil
+	end
 
 	local Alignment = Window.Alignment
 	local Horizontal = Alignment == "Top" or Alignment == "Bottom"
@@ -1338,6 +1346,7 @@ function TabModule:New(Title, Icon, Parent)
 
 	local IconLabel = New("ImageLabel", {
 		Name = "IconLabel",
+		Visible = Window.ShowTabIcons == true and Icon ~= nil,
 		AnchorPoint = Vector2.new(0, 0.5),
 		Size = UDim2.fromOffset(16, 16),
 		Position = UDim2.new(0, 8, 0.5, 0),
@@ -1360,6 +1369,15 @@ function TabModule:New(Title, Icon, Parent)
 	}, {
 		New("UICorner", {
 			CornerRadius = UDim.new(0, 6),
+		}),
+		New("UIStroke", {
+			Name = "TabOutline",
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+			Thickness = 1,
+			Transparency = 0.55,
+			ThemeTag = {
+				Color = "Accent",
+			},
 		}),
 		TextLabel,
 		IconLabel,
@@ -1876,6 +1894,7 @@ return function(Config)
 		CurrentPos = 0,
 		TabWidth = 0,
 		Alignment = ValidAlignments[Config.Alignment] and Config.Alignment or "Left",
+		ShowTabIcons = Config.ShowTabIcons == true,
 		Position = UDim2.fromOffset(
 			Camera.ViewportSize.X / 2 - Config.Size.X.Offset / 2,
 			Camera.ViewportSize.Y / 2 - Config.Size.Y.Offset / 2
